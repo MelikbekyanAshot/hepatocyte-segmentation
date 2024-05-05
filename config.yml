@@ -1,0 +1,24 @@
+PATH:
+  IMAGE_MASK:
+    GROUPED: D:\Hepatocyte\image_mask\grouped
+    STEATOSIS_2K: D:\Hepatocyte\image_mask\steatosis_2K
+  JSON:
+    FIXED: D:\Hepatocyte\json\fixed
+    GROUPED: D:\Hepatocyte\json\grouped
+    ORIGINAL: D:\Hepatocyte\json\raw
+    STEATOSIS: D:\Hepatocyte\json\steatosis
+    STEATOSIS_2K: D:\Hepatocyte\json\steatosis_2K
+  PATCHES:
+    GROUPED:
+      IMAGE: D:\Hepatocyte\patches\grouped_128\image
+      MASK: D:\Hepatocyte\patches\grouped_128\mask
+    STEATOSIS:
+      IMAGE: D:\Hepatocyte\patches\steatosis_128\image
+      MASK: D:\Hepatocyte\patches\steatosis_128\mask
+TRAIN:
+  MODEL_NAME: u-resnet34
+  LOSS_FN: dice
+  OPTIMIZER: Adam
+  LEARNING_RATE: 0.0003
+  N_EPOCHS: 1
+  BATCH_SIZE: 8
