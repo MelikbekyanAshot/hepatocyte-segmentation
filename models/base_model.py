@@ -12,8 +12,8 @@ config = get_config()
 class SegmentationModel(LightningModule):
     def __init__(self):
         super().__init__()
-        self.model = get_model(config['TRAIN']['MODEL_NAME'])
-        self.loss_fn = get_loss(config['TRAIN']['LOSS_FN'])
+        self.model = get_model(**config['TRAIN']['MODEL'])
+        self.loss_fn = get_loss(**config['TRAIN']['LOSS'])
         self.optimizer = get_optimizer(config['TRAIN']['OPTIMIZER'])
 
     def forward(self, img):

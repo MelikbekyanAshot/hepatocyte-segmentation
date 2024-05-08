@@ -1,8 +1,3 @@
-import os
-
-import yaml
-from yaml.loader import SafeLoader
-
 import numpy as np
 import torch
 from PIL import Image
@@ -27,8 +22,3 @@ class PatchDataset(Dataset):
             img, mask = aug_data['image'], aug_data['mask']
         img, mask = torch.from_numpy(img).permute(2, 0, 1), torch.from_numpy(mask).unsqueeze(-1).permute(2, 0, 1)
         return img, mask
-
-
-if __name__ == '__main__':
-    config = yaml.load('../config.yml', SafeLoader)
-
