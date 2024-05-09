@@ -4,7 +4,7 @@
 
 # Запуск
 Параметры обучения модели хранятся в файле [конфигурации](config.yml).
-В файле конфигурации можно выбрать:
+В нём можно выбрать:
 - общую архитектуру модели
 - архитектуру внутренних блоков модели
 - размер батча
@@ -21,4 +21,4 @@
 - [PyTorch Lightning](https://pytorch-lighting.readthedocs.io/en/latest/) - фреймфорк для обучения модели.
 - [Segmentation Models](https://pypi.org/project/segmentation-models-pytorch/) - конструктор моделей для сегментации.
 - [Albumentations](https://albumentations.ai/docs/examples/pytorch_classification/) - аугментация данных.
-- [wandb](https://wandb.ai/home) - платформа для логирования экспериментов и анализа данных.
+- [W&B](https://wandb.ai/home) - платформа для логирования экспериментов и анализа данных.
