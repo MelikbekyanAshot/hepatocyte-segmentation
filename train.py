@@ -1,17 +1,16 @@
-import wandb
 from pytorch_lightning import Trainer, seed_everything
 from torchinfo import summary
 
+import wandb
 from models.base_model import SegmentationModel
 from utils.data_utils import get_dataloaders, get_config
 
-
-seed_everything()
+seed_everything(123)
 
 
 if __name__ == '__main__':
     config = get_config()
-    train_dl, val_dl = get_dataloaders(config)
+    train_dl, val_dl, test_dl = get_dataloaders(config)
     seg_model = SegmentationModel()
     trainer = Trainer(
         max_epochs=config['TRAIN']['N_EPOCHS'])
@@ -33,4 +32,5 @@ if __name__ == '__main__':
         model=seg_model,
         train_dataloaders=train_dl,
         val_dataloaders=val_dl)
+    trainer.test(model=seg_model, dataloaders=test_dl)
     wandb.finish()
