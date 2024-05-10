@@ -1,3 +1,5 @@
+import os
+
 import wandb
 from pytorch_lightning import Trainer, seed_everything
 from torchinfo import summary
@@ -11,7 +13,9 @@ seed_everything(123)
 
 if __name__ == '__main__':
     config = get_config()
-    *_, test_dl = get_dataloaders(config)
+    *_, test_dl = get_dataloaders(
+        path_to_dir=os.path.dirname(config['PATH']['PATCHES']['STEATOSIS']['IMAGE']),
+        batch_size=config['TRAIN']['BATCH_SIZE'])
     seg_model = SegmentationModel()
     trainer = Trainer()
     wandb.login()
