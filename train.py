@@ -1,3 +1,5 @@
+import os
+
 from pytorch_lightning import Trainer, seed_everything
 from torchinfo import summary
 
@@ -10,7 +12,9 @@ seed_everything(123)
 
 if __name__ == '__main__':
     config = get_config()
-    train_dl, val_dl, test_dl = get_dataloaders(config)
+    train_dl, val_dl, test_dl = get_dataloaders(
+        path_to_dir=os.path.dirname(config['PATH']['PATCHES']['STEATOSIS']['IMAGE']),
+        batch_size=config['TRAIN']['BATCH_SIZE'])
     seg_model = SegmentationModel()
     trainer = Trainer(
         max_epochs=config['TRAIN']['N_EPOCHS'])
