@@ -1,4 +1,5 @@
 import os
+import time
 
 from pytorch_lightning import Trainer, seed_everything
 from torchinfo import summary
@@ -25,7 +26,7 @@ if __name__ == '__main__':
     wandb.login()
     wandb.init(
         project=wandb_config['PROJECT'],
-        name=wandb_config['NAME'] or seg_model.model.name,
+        name=wandb_config['NAME'] or f"{seg_model.model.name} ({time.asctime()})",
         config={
             **train_config['MODEL'],
             **train_config['LOSS'],
