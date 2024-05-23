@@ -1,29 +1,39 @@
 PATH:
-  IMAGE_MASK:
-    GROUPED: D:\Hepatocyte\image_mask\grouped
-    STEATOSIS_2K: D:\Hepatocyte\image_mask\steatosis_2K
   JSON:
     ORIGINAL: D:\Hepatocyte\json\raw
     FIXED: D:\Hepatocyte\json\fixed
     GROUPED: D:\Hepatocyte\json\grouped
     STEATOSIS: D:\Hepatocyte\json\steatosis
     STEATOSIS_2K: D:\Hepatocyte\json\steatosis_2K
+  IMAGE_MASK:
+    GROUPED: D:\Hepatocyte\image_mask\grouped
+    STEATOSIS_2K: D:\Hepatocyte\image_mask\steatosis_2K
   PATCHES:
-    GROUPED:
-      IMAGE: D:\Hepatocyte\patches\grouped_128\image
-      MASK: D:\Hepatocyte\patches\grouped_128\mask
-    STEATOSIS:
-      IMAGE: D:\Hepatocyte\patches\steatosis_128\image
-      MASK: D:\Hepatocyte\patches\steatosis_128\mask
+    GROUPED: D:\Hepatocyte\patches\grouped_128  # All cells classified in 6 major groups
+    STEATOSIS: D:\Hepatocyte\patches\steatosis_128  # Only steatosis cells
+    SELECTED: GROUPED  # Choose dataset to train on
 TRAIN:
   MODEL:
-    architecture: PSPNet  # Available architectures: https://smp.readthedocs.io/en/latest/models.html
+    architecture: UNet  # Available architectures: https://smp.readthedocs.io/en/latest/models.html
     encoder_name: resnet34  # Available encoders: https://smp.readthedocs.io/en/latest/encoders.html
-    output_classes: 1  # Number of classes
+    encoder_weights:  # Keep blank for random initialization, or use available weights:
+                      # https://segmentation-models-pytorch.readthedocs.io/en/latest/encoders.html
+    output_classes: 7  # Number of classes
   LOSS:
-    function: dice
-    mode: binary  # Variants: binary, multiclass
+    function: dice  # Available loss functions: dice, cross_entropy, soft_cross_entropy, jaccard, focal
+    mode: multiclass  # Available modes: binary, multiclass. Use for dice, jaccard and focal losses
   OPTIMIZER: Adam
   LEARNING_RATE: 0.0003
-  N_EPOCHS: 10
+  N_EPOCHS: 1
   BATCH_SIZE: 8
+WANDB:
+  IDX2LABEL:  # index to label mapping for grouped data
+    0: background
+    1: hepatocyte_balloon_dystrophy
+    2: hepatocyte_inclusion
+    3: hepatocyte_non_nuclei
+    4: hepatocyte_relatively_normal
+    5: hepatocyte_steatosis
+    6: mesenchymal_cells
+  PROJECT: hepatocyte-segmentation
+  NAME: u-resnet34 (all classes)

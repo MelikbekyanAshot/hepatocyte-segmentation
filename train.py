@@ -12,24 +12,28 @@ seed_everything(123)
 
 if __name__ == '__main__':
     config = get_config()
+    train_config = config['TRAIN']
+    patches_config = config['PATH']['PATCHES']
+    wandb_config = config['WANDB']
+    selected_dir = patches_config['SELECTED']
     train_dl, val_dl, test_dl = get_dataloaders(
-        path_to_dir=os.path.dirname(config['PATH']['PATCHES']['STEATOSIS']['IMAGE']),
-        batch_size=config['TRAIN']['BATCH_SIZE'])
+        path_to_dir=patches_config[selected_dir],
+        batch_size=train_config['BATCH_SIZE'])
     seg_model = SegmentationModel()
     trainer = Trainer(
-        max_epochs=config['TRAIN']['N_EPOCHS'])
+        max_epochs=train_config['N_EPOCHS'])
     wandb.login()
     wandb.init(
-        project='hepatocyte-segmentation',
-        name=seg_model.model.name,
+        project=wandb_config['PROJECT'],
+        name=wandb_config['NAME'] or seg_model.model.name,
         config={
-            **config['TRAIN']['MODEL'],
-            **config['TRAIN']['LOSS'],
+            **train_config['MODEL'],
+            **train_config['LOSS'],
             'trainable_params': summary(seg_model.model).trainable_params,
-            'optimizer': config['TRAIN']['OPTIMIZER'],
-            'lr': config['TRAIN']['LEARNING_RATE'],
-            'n_epochs': config['TRAIN']['N_EPOCHS'],
-            'batch_size': config['TRAIN']['BATCH_SIZE'],
+            'optimizer': train_config['OPTIMIZER'],
+            'lr': train_config['LEARNING_RATE'],
+            'n_epochs': train_config['N_EPOCHS'],
+            'batch_size': train_config['BATCH_SIZE'],
         }
     )
     trainer.fit(
