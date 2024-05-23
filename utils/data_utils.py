@@ -23,6 +23,12 @@ def get_config(path='config.yml') -> Dict:
     return config
 
 
+def dump_config(config: Dict, path: str):
+    """Create or update config file."""
+    with open(path, 'w') as f:
+        yaml.dump(config, f)
+
+
 def get_dataloaders(
         path_to_dir: str, batch_size: int,
         train_size: float = 0.7, val_size: float = 0.2, test_size: float = 0.1) \
