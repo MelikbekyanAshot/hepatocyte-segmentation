@@ -58,15 +58,16 @@ def get_dataloaders(
     logger.info(f"\nTrain samples: {len(train_patch_ds)}"
                 f"\nVal samples: {len(val_patch_ds)}"
                 f"\nTest samples: {len(test_patch_ds)}")
+    num_workers = 0 if os.name == 'nt' else os.cpu_count() - 1  # set 0 for Windows
     train_dataloader = DataLoader(
         train_patch_ds, batch_size=batch_size, shuffle=True,
-        num_workers=0, drop_last=True)
+        num_workers=num_workers, drop_last=True)
     val_dataloader = DataLoader(
         val_patch_ds, batch_size=batch_size, shuffle=False,
-        num_workers=0, drop_last=True)
+        num_workers=num_workers, drop_last=True)
     test_dataloader = DataLoader(
         test_patch_ds, batch_size=batch_size, shuffle=False,
-        num_workers=0, drop_last=True)
+        num_workers=num_workers, drop_last=True)
     return train_dataloader, val_dataloader, test_dataloader
 
 
