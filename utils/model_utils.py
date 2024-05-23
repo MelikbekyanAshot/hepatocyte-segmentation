@@ -1,6 +1,8 @@
 """
 File contains utility functions to create model.
 """
+from typing import Optional
+
 import torch
 from segmentation_models_pytorch import Unet, UnetPlusPlus, MAnet, Linknet, FPN, PSPNet, PAN, DeepLabV3, DeepLabV3Plus
 from segmentation_models_pytorch.base import SegmentationModel
@@ -8,7 +10,24 @@ from segmentation_models_pytorch.losses import DiceLoss, SoftCrossEntropyLoss, J
 from torch.optim import Adam, AdamW
 
 
-def get_model(architecture: str, encoder_name: str, encoder_weights=None, output_classes=1):
+def get_model(architecture: str, encoder_name: str, encoder_weights: Optional[str] = None, output_classes: int = 1) \
+        -> torch.nn.Module:
+    """Build segmentation model from segmentation-models-pytorch package.
+
+    Args:
+        architecture (str) - neural network type.
+        encoder_name (str) - classification model that will be used as encoder to extract features from image.
+        encoder_weights (Optional[str]) - pretrained weights, None for random initialization.
+        output_classes (int) - number of classes to segment, including background.
+
+    Returns:
+        model (torch.nn.Module) - neural network for segmentation.
+
+    Raises:
+         KeyError: if given architecture is not supported.
+         KeyError: if architecture with given backbone is not supported.
+         KeyError: if backbone with given encoder_weights is not supported.
+    """
     kwargs = {
         'encoder_name': encoder_name,
         'encoder_weights': encoder_weights,
@@ -25,10 +44,11 @@ def get_model(architecture: str, encoder_name: str, encoder_weights=None, output
         'deeplabv3': DeepLabV3,
         'deeplabv3+': DeepLabV3Plus
     }
-    model = model_mapping.get(architecture.lower(), None)(**kwargs)
+    model = model_mapping.get(architecture.lower(), None)
     if model is None:
-        raise KeyError(f'Model {architecture} with {encoder_name} backbone is not found!')
-    return model
+        raise KeyError(f"Wrong architecture name '{architecture}', "
+                       f"supported architectures: {list(model_mapping.keys())}'")
+    return model(**kwargs)
 
 
 def get_loss(function: str, mode: str):
