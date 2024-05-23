@@ -4,6 +4,7 @@ File contains utility functions to get dataloaders and config file.
 import os
 from typing import Tuple, Dict
 
+import torch
 import yaml
 from albumentations import Compose, VerticalFlip, HorizontalFlip, RandomRotate90
 from loguru import logger
@@ -61,6 +62,40 @@ def get_dataloaders(
         test_patch_ds, batch_size=batch_size, shuffle=False,
         num_workers=0, drop_last=True)
     return train_dataloader, val_dataloader, test_dataloader
+
+
+def split_mask(mask: torch.Tensor, n_channels: int) -> torch.Tensor:
+    """Split original 2D-mask array into multichannel array.
+    Input size: [B, H, W], output size: [B, N, H, W].
+
+    Args:
+        mask - original 2D mask.
+        n_channels - number of channels to extract.
+
+    Returns:
+        splitted_mask - multichannel mask with separate channel for every type of cell.
+    """
+    B, _, H, W = mask.size()
+    splitted_mask = torch.zeros((B, n_channels, H, W), dtype=torch.float)
+
+    for i in range(n_channels):
+        splitted_mask[:, i] = (mask == i).squeeze() * i
+
+    return splitted_mask
+
+
+def merge_mask(mask: torch.Tensor):
+    """Merge multichannel mask into 2D-array.
+    Input size: [B, N, H, W], output size: [B, H, W].
+
+    Args:
+        mask (torch.Tensor) - multichannel mask.
+
+    Returns:
+        merged_msak (torch,Tensor) - 2D mask.
+    """
+    merged_mask = mask.sum(axis=1)
+    return merged_mask
 
 
 if __name__ == '__main__':
