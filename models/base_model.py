@@ -30,6 +30,8 @@ class SegmentationModel(LightningModule):
         self.val_epoch_loss = []
         self.val_epoch_f1 = []
         self.val_epoch_iou = []
+        self.test_gt_labels = []
+        self.test_pred_labels = []
 
     def forward(self, img):
         return self.model(img)
@@ -79,6 +81,8 @@ class SegmentationModel(LightningModule):
 
     def on_test_epoch_start(self) -> None:
         self.test_table = wandb.Table(columns=['sample'])
+        self.test_gt_labels = []
+        self.test_pred_labels = []
 
     def test_step(self, batch, batch_idx):
         image, mask = batch
@@ -90,6 +94,8 @@ class SegmentationModel(LightningModule):
         metrics = compute_metrics(pred_mask, mask)
         wandb.log({'Test/Loss': loss.item()})
         wandb.log(metrics.to_dict('Test'))
+        self.test_gt_labels.extend(mask.ravel().numpy())
+        self.test_pred_labels.extend(pred_mask.ravel().numpy())
         self.__add_images_to_table(image, mask, pred_mask)
 
     def __add_images_to_table(self, images, masks, preds):
@@ -113,6 +119,13 @@ class SegmentationModel(LightningModule):
 
     def on_test_epoch_end(self) -> None:
         wandb.log({f"Gallery/{WANDB_CONFIG['NAME'] or self.model.name}": self.test_table})
+        class_names = [label.replace('hepatocyte_', '') for label in WANDB_CONFIG['IDX2LABEL'].values()]
+        wandb.log({
+            'conf_matrix': wandb.plot.confusion_matrix(
+                probs=None, y_true=self.test_gt_labels, preds=self.test_pred_labels,
+                class_names=class_names, title='Confusion matrix'
+            )
+        })
 
     def predict_step(self, image, batch_idx):
         logits_mask = self.model(image.float())
