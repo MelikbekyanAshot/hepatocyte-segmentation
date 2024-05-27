@@ -48,7 +48,7 @@ class SegmentationModel(LightningModule):
         loss = self.loss_fn(logits_mask, mask)
         prob_mask = logits_mask.sigmoid()
         pred_mask = prob_mask.argmax(dim=1, keepdim=True)
-        metrics = compute_metrics(pred_mask, mask)
+        metrics = compute_metrics(pred_mask, mask, mode=MODE, num_classes=OUTPUT_CLASSES)
         self.log_batch_results(loss, metrics, 'Train')
         return loss
 
@@ -70,7 +70,7 @@ class SegmentationModel(LightningModule):
         loss = self.loss_fn(logits_mask, mask)
         prob_mask = logits_mask.sigmoid()
         pred_mask = prob_mask.argmax(dim=1, keepdim=True)
-        metrics = compute_metrics(pred_mask, mask)
+        metrics = compute_metrics(pred_mask, mask, mode=MODE, num_classes=OUTPUT_CLASSES)
         self.log_batch_results(loss, metrics, 'Val')
 
     def on_validation_epoch_end(self) -> None:
@@ -91,7 +91,7 @@ class SegmentationModel(LightningModule):
         loss = self.loss_fn(logits_mask, mask)
         prob_mask = logits_mask.sigmoid()
         pred_mask = prob_mask.argmax(dim=1, keepdim=True)
-        metrics = compute_metrics(pred_mask, mask)
+        metrics = compute_metrics(pred_mask, mask, mode=MODE, num_classes=OUTPUT_CLASSES)
         wandb.log({'Test/Loss': loss.item()})
         wandb.log(metrics.to_dict('Test'))
         self.test_gt_labels.extend(mask.ravel().numpy())
