@@ -104,8 +104,8 @@ class SegmentationModel(LightningModule):
         metrics = compute_metrics(pred_mask, mask, mode=MODE, num_classes=OUTPUT_CLASSES)
         wandb.log({'Test/Loss': loss.item()})
         wandb.log(metrics.to_dict('Test'))
-        self.test_gt_labels.extend(mask.ravel().numpy())
-        self.test_pred_labels.extend(pred_mask.ravel().numpy())
+        self.test_gt_labels.extend(mask.ravel().cpu().numpy())
+        self.test_pred_labels.extend(pred_mask.ravel().cpu().numpy())
         self.__add_images_to_table(image, mask, pred_mask)
 
     def __add_images_to_table(self, images, masks, preds):
