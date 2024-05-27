@@ -56,7 +56,12 @@ class SegmentationModel(LightningModule):
         mean_loss = np.mean(self.train_epoch_loss)
         mean_f1 = np.mean(self.train_epoch_f1)
         mean_iou = np.mean(self.train_epoch_iou)
-        wandb.log({'Train/EpochLoss': mean_loss, 'Train/EpochF1': mean_f1, 'Train/EpochIoU': mean_iou})
+        wandb.log({
+            'Train/EpochLoss': mean_loss,
+            'Train/EpochF1': mean_f1,
+            'Train/EpochIoU': mean_iou,
+            'epoch': self.current_epoch}
+        )
 
     def on_validation_epoch_start(self) -> None:
         self.val_epoch_loss = []
@@ -77,7 +82,12 @@ class SegmentationModel(LightningModule):
         mean_loss = np.mean(self.val_epoch_loss)
         mean_f1 = np.mean(self.val_epoch_f1)
         mean_iou = np.mean(self.val_epoch_iou)
-        wandb.log({'Val/EpochLoss': mean_loss, 'Val/EpochF1': mean_f1, 'Val/EpochIoU': mean_iou})
+        wandb.log({
+            'Val/EpochLoss': mean_loss,
+            'Val/EpochF1': mean_f1,
+            'Val/EpochIoU': mean_iou,
+            'epoch': self.current_epoch}
+        )
 
     def on_test_epoch_start(self) -> None:
         self.test_table = wandb.Table(columns=['sample'])
