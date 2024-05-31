@@ -8,17 +8,16 @@ import wandb
 from models.base_model import SegmentationModel
 from utils.data_utils import get_dataloaders, get_config
 
-seed_everything(123)
+seed_everything(1234)
 
 
 if __name__ == '__main__':
     config = get_config()
     train_config = config['TRAIN']
-    patches_config = config['PATH']['PATCHES']
+    path_to_patches = config['PATH']['PATCHES']
     wandb_config = config['WANDB']
-    selected_dir = patches_config['SELECTED']
-    train_dl, val_dl, test_dl = get_dataloaders(
-        path_to_dir=patches_config[selected_dir],
+    train_dl, val_dl = get_dataloaders(
+        path_to_dir=path_to_patches,
         batch_size=train_config['BATCH_SIZE'])
     seg_model = SegmentationModel()
     trainer = Trainer(
@@ -41,5 +40,5 @@ if __name__ == '__main__':
         model=seg_model,
         train_dataloaders=train_dl,
         val_dataloaders=val_dl)
-    trainer.test(model=seg_model, dataloaders=test_dl)
+    trainer.test(model=seg_model, dataloaders=val_dl)
     wandb.finish()
