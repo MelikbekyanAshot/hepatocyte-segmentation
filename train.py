@@ -41,4 +41,9 @@ if __name__ == '__main__':
         train_dataloaders=train_dl,
         val_dataloaders=val_dl)
     trainer.test(model=seg_model, dataloaders=val_dl)
+    folders = os.listdir('lightning_logs/')
+    cur_folder = sorted(folders, key=lambda f: int(f[f.rfind('_') + 1:]))[-1]
+    wandb.save(
+        f'lightning_logs/{cur_folder}/checkpoints/*.ckpt'
+    )
     wandb.finish()
