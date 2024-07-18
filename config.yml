@@ -1,7 +1,4 @@
-PATH:
-  JSON:               D:\Hepatocyte\complete\json
-  IMAGE_MASK:         D:\Hepatocyte\complete\image_mask
-  PATCHES:            D:\Hepatocyte\complete\patch
+PATH: D:\Hepatocyte
 TRAIN:
   MODEL:
     architecture:     pspnet  # Available architectures: https://smp.readthedocs.io/en/latest/models.html
