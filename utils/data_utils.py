@@ -68,6 +68,9 @@ def get_dataloaders(
     mask_patch_paths, image_patch_paths = [], []
 
     for folder in sample_folders:
+        if folder == '7939_20_310320201319_7':
+            # This is temporally crunch for testing
+            continue
         mask_dir = os.path.join(root_path, folder, 'patches', 'masks')
         image_dir = os.path.join(root_path, folder, 'patches', 'images')
 
