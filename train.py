@@ -43,8 +43,10 @@ if __name__ == '__main__':
         val_dataloaders=val_dl)
     trainer.test(model=seg_model, dataloaders=val_dl)
     folders = os.listdir('lightning_logs/')
-    model_scripted = torch.jit.script(seg_model.model)  # or seg_model.model?
-    weights_file_name = f"{wandb_config['NAME']}_scripted.pt"
-    model_scripted.save(weights_file_name)
+    weights_file_name = f"{wandb_config['NAME']}_scripted.pth"
+    dummy_input = torch.randn(train_config['BATCH_SIZE'], 3, 256, 256)
+    with torch.no_grad():
+        traced_cell = torch.jit.trace(seg_model.model, dummy_input)
+    torch.jit.save(traced_cell, weights_file_name)
     wandb.save(weights_file_name)
     wandb.finish()
