@@ -1,6 +1,7 @@
 import os
 import time
 
+import torch.jit
 from pytorch_lightning import Trainer, seed_everything
 from torchinfo import summary
 
@@ -14,10 +15,10 @@ seed_everything(1234)
 if __name__ == '__main__':
     config = get_config()
     train_config = config['TRAIN']
-    path_to_patches = config['PATH']['PATCHES']
+    root = config['PATH']
     wandb_config = config['WANDB']
     train_dl, val_dl = get_dataloaders(
-        path_to_dir=path_to_patches,
+        root_path=root,
         batch_size=train_config['BATCH_SIZE'])
     seg_model = SegmentationModel()
     trainer = Trainer(
@@ -42,8 +43,8 @@ if __name__ == '__main__':
         val_dataloaders=val_dl)
     trainer.test(model=seg_model, dataloaders=val_dl)
     folders = os.listdir('lightning_logs/')
-    cur_folder = sorted(folders, key=lambda f: int(f[f.rfind('_') + 1:]))[-1]
-    wandb.save(
-        f'lightning_logs/{cur_folder}/checkpoints/*.ckpt'
-    )
+    model_scripted = torch.jit.script(seg_model.model)  # or seg_model.model?
+    weights_file_name = f"{wandb_config['NAME']}_scripted.pt"
+    model_scripted.save(weights_file_name)
+    wandb.save(weights_file_name)
     wandb.finish()

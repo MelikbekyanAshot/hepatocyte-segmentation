@@ -31,25 +31,55 @@ def dump_config(config: Dict, path: str):
 
 
 def get_dataloaders(
-        path_to_dir: str, batch_size: int,
+        root_path: str, batch_size: int,
         train_size: float = 0.8, val_size: float = 0.2) \
         -> Tuple[DataLoader, DataLoader]:
-    """Split image-mask patches into 2 groups: train and val. """
+    """Split image-mask patches into 2 groups: train and val.
+    Data directories structure:
+        sample_number:
+            full_sample - contains full sized image, mask and txt file with presented labels.
+            json - json file with labels.
+            patches:
+                images - image tiles.
+                masks - mask tiles.
+    """
     assert round(train_size + val_size, 2) == 1.0, \
         f"Wrong split coefficients: {train_size + val_size} is not equal to 1.0"
-    patch_masks_dir = os.path.join(path_to_dir, 'mask')
-    mask_patches = [os.path.join(patch_masks_dir, file_name) for file_name in os.listdir(patch_masks_dir)]
-    mask_patches.sort(key=lambda p: int(p[p.rfind('_') + 1:p.rfind('.')]))
-    patch_image_dir = os.path.join(path_to_dir, 'image')
-    image_patches = [os.path.join(patch_image_dir, file_name) for file_name in os.listdir(patch_image_dir)]
-    image_patches.sort(key=lambda p: int(p[p.rfind('_') + 1:p.rfind('.')]))
+    sample_folders = os.listdir(root_path)
+
+    # mask_patch_paths = []
+    # for folder in sample_folders:
+    #     cur_dir = os.path.join(root_path, folder, 'patches', 'masks')
+    #     cur_paths = []
+    #     for mask_patch_path in os.listdir(cur_dir):
+    #         cur_paths.append(os.path.join(cur_dir, mask_patch_path))
+    #     cur_paths.sort(key=lambda p: int(p[p.rfind('_') + 1:p.rfind('.')]))
+    #     mask_patch_paths.extend(cur_paths)
+    #
+    # image_patch_paths = []
+    # for folder in sample_folders:
+    #     cur_dir = os.path.join(root_path, folder, 'patches', 'images')
+    #     cur_paths = []
+    #     for image_patch_path in os.listdir(cur_dir):
+    #         cur_paths.append(os.path.join(cur_dir, image_patch_path))
+    #     cur_paths.sort(key=lambda p: int(p[p.rfind('_') + 1:p.rfind('.')]))
+    #     image_patch_paths.extend(cur_paths)
+
+    mask_patch_paths, image_patch_paths = [], []
+
+    for folder in sample_folders:
+        mask_dir = os.path.join(root_path, folder, 'patches', 'masks')
+        image_dir = os.path.join(root_path, folder, 'patches', 'images')
+
+        for patch_path in os.listdir(mask_dir):
+            mask_patch_paths.append(os.path.join(mask_dir, patch_path))
+
+        for patch_path in os.listdir(image_dir):
+            image_patch_paths.append(os.path.join(image_dir, patch_path))
+
     train_images, val_images, train_masks, val_masks = \
-        train_test_split(image_patches, mask_patches, test_size=0.2)
-    # n = len(image_patches)
-    # train_number = int(train_size * n)
-    # val_number = int((train_size + val_size) * n)
-    # train_images, val_images, test_images = np.split(image_patches, [train_number, val_number])
-    # train_masks, val_masks, test_masks = np.split(mask_patches, [train_number, val_number])
+        train_test_split(image_patch_paths, mask_patch_paths, test_size=0.2)
+
     transforms = Compose([
         VerticalFlip(p=0.5),
         HorizontalFlip(p=0.5),
@@ -105,7 +135,7 @@ def merge_mask(mask: torch.Tensor):
 
 if __name__ == '__main__':
     data_loader, *_ = get_dataloaders(
-        path_to_dir='D:\\Hepatocyte\\patches\\steatosis_128\\', batch_size=4,
+        root_path='D:\\Hepatocyte\\patches\\steatosis_128\\', batch_size=4,
         train_size=1.0, val_size=0.0, test_size=0.0)
     batch = next(iter(data_loader))
     plot_batch(batch)
