@@ -30,9 +30,7 @@ def dump_config(config: Dict, path: str):
         yaml.dump(config, f)
 
 
-def get_dataloaders(
-        root_path: str, batch_size: int,
-        train_size: float = 0.8, val_size: float = 0.2) \
+def get_dataloaders(root_path: str, batch_size: int, val_size: float = 0.2) \
         -> Tuple[DataLoader, DataLoader]:
     """Split image-mask patches into 2 groups: train and val.
     Data directories structure:
@@ -43,8 +41,6 @@ def get_dataloaders(
                 images - image tiles.
                 masks - mask tiles.
     """
-    assert round(train_size + val_size, 2) == 1.0, \
-        f"Wrong split coefficients: {train_size + val_size} is not equal to 1.0"
     sample_folders = os.listdir(root_path)
 
     # mask_patch_paths = []
@@ -80,8 +76,11 @@ def get_dataloaders(
         for patch_path in os.listdir(image_dir):
             image_patch_paths.append(os.path.join(image_dir, patch_path))
 
+    mask_patch_paths = sorted(mask_patch_paths)
+    image_patch_paths = sorted(image_patch_paths)
+
     train_images, val_images, train_masks, val_masks = \
-        train_test_split(image_patch_paths, mask_patch_paths, test_size=0.2)
+        train_test_split(image_patch_paths, mask_patch_paths, test_size=val_size)
 
     transforms = Compose([
         VerticalFlip(p=0.5),
@@ -137,8 +136,6 @@ def merge_mask(mask: torch.Tensor):
 
 
 if __name__ == '__main__':
-    data_loader, *_ = get_dataloaders(
-        root_path='D:\\Hepatocyte\\patches\\steatosis_128\\', batch_size=4,
-        train_size=1.0, val_size=0.0, test_size=0.0)
+    data_loader, *_ = get_dataloaders(root_path='D:\\Hepatocyte', batch_size=16, val_size=0.1)
     batch = next(iter(data_loader))
     plot_batch(batch)

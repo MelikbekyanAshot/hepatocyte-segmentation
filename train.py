@@ -1,4 +1,3 @@
-import os
 import time
 
 import torch.jit
@@ -17,9 +16,7 @@ if __name__ == '__main__':
     train_config = config['TRAIN']
     root = config['PATH']
     wandb_config = config['WANDB']
-    train_dl, val_dl = get_dataloaders(
-        root_path=root,
-        batch_size=train_config['BATCH_SIZE'])
+    train_dl, val_dl = get_dataloaders(root_path=root, batch_size=train_config['BATCH_SIZE'])
     seg_model = SegmentationModel()
     trainer = Trainer(
         max_epochs=train_config['N_EPOCHS'])
@@ -42,9 +39,8 @@ if __name__ == '__main__':
         train_dataloaders=train_dl,
         val_dataloaders=val_dl)
     trainer.test(model=seg_model, dataloaders=val_dl)
-    folders = os.listdir('lightning_logs/')
     weights_file_name = f"{wandb_config['NAME']}_scripted.pth"
-    dummy_input = torch.randn(train_config['BATCH_SIZE'], 3, 256, 256)
+    dummy_input = torch.randn(train_config['BATCH_SIZE'], 3, 128, 128)
     with torch.no_grad():
         traced_cell = torch.jit.trace(seg_model.model, dummy_input)
     torch.jit.save(traced_cell, weights_file_name)
