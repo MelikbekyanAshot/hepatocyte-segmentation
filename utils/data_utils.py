@@ -57,9 +57,9 @@ def get_dataloaders(root_path: str, batch_size: int, val_size: float = 0.2) \
         if folder == '7939_20_310320201319_7':
             # This is temporally crunch for testing
             for patch_path in os.listdir(mask_dir):
-                test_mask_patch_paths.append(patch_path)
+                test_mask_patch_paths.append(os.path.join(mask_dir, patch_path))
             for patch_path in os.listdir(image_dir):
-                test_image_patch_paths.append(patch_path)
+                test_image_patch_paths.append(os.path.join(image_dir, patch_path))
         else:
             for patch_path in os.listdir(mask_dir):
                 train_val_mask_patch_paths.append(os.path.join(mask_dir, patch_path))
