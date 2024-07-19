@@ -3,6 +3,7 @@ from typing import List, Dict
 
 import numpy as np
 from PIL import Image
+from loguru import logger
 from patchify import patchify
 from torch.utils.data import Dataset
 from tqdm.auto import tqdm
@@ -51,11 +52,11 @@ class FullImageDataset(Dataset):
         img_patches = patchify(
             image,
             patch_size=(self.patch_width, self.patch_height, 3),
-            step=self.patch_width // 4).squeeze()
+            step=self.patch_step).squeeze()
         mask_patches = patchify(
             mask,
             patch_size=(self.patch_width, self.patch_height),
-            step=self.patch_width // 4).squeeze()
+            step=self.patch_step).squeeze()
         return img_patches, mask_patches
 
     def __filter_tiles(self, img_tiles, mask_tiles):
@@ -65,8 +66,8 @@ class FullImageDataset(Dataset):
         for i in range(nrow):
             for j in range(ncol):
                 mask_patch = mask_tiles[i][j]
-                # borders = (mask_patch[0, :] + mask_patch[:, 0] + mask_patch[-1, :] + mask_patch[:, -1])
-                if mask_patch.sum().item() > 0:  # and borders.sum() == 0:
+                borders = (mask_patch[0, :] + mask_patch[:, 0] + mask_patch[-1, :] + mask_patch[:, -1])
+                if mask_patch.sum().item() > 0 and borders.sum() == 0:
                     img_with_label.append(img_tiles[i][j])
                     mask_with_label.append(mask_patch)
         return np.array(img_with_label), np.array(mask_with_label)
@@ -87,34 +88,35 @@ class FullImageDataset(Dataset):
 
 def convert_dataset(dataset, root_path):
     for ds_batch in tqdm(dataset):
-        print(f"Converting {ds_batch['sample_name']}")
+        logger.info(f"Converting {ds_batch['sample_name']}")
+        os.mkdir(os.path.join(root_path, ds_batch['sample_name'], 'patches'))
+        os.mkdir(os.path.join(root_path, ds_batch['sample_name'], 'patches', 'images'))
+        os.mkdir(os.path.join(root_path, ds_batch['sample_name'], 'patches', 'masks'))
         k = 0
         for image, mask in zip(ds_batch['image'], ds_batch['mask']):
             img = Image.fromarray(image, 'RGB')
             img.save(os.path.join(root_path, ds_batch['sample_name'], 'patches', 'images', f'image_{k}.png'))
-
             mask = Image.fromarray(mask)
             mask.save(os.path.join(root_path, ds_batch['sample_name'], 'patches', 'masks', f'mask_{k}.png'))
             k += 1
-        print(f"Converted {ds_batch['sample_name']}")
-        print()
+        logger.success(f"Converted {ds_batch['sample_name']}")
 
 
 if __name__ == '__main__':
     root = os.path.abspath(r'D:\Hepatocyte')
     sample_names = os.listdir(root)
-    folders = [os.path.join(root, folder_name, 'full_sample') for folder_name in os.listdir(root)]
+    folders = [os.path.join(root, folder_name, 'full_sample') for folder_name in sample_names]
     img_paths = [os.path.join(folder, 'img.png') for folder in folders]
     mask_paths = [os.path.join(folder, 'label.png') for folder in folders]
     label_paths = [os.path.join(folder, 'label_names.txt') for folder in folders]
-    patch_width = patch_height = 256
+    patch_width = patch_height = 128
     global_mapping = {
-        'background': 0,
+        '_background_': 0,
         'balloon_dystrophy': 1,
-        'inclusion': 2,
-        'non_nuclei': 3,
-        'relatively_normal': 4,
-        'steatosis': 5,
+        'hepatocyte_inclusion': 2,
+        'hepatocyte_non_nuclei': 3,
+        'hepatocyte_relatively_normal': 4,
+        'hepatocyte_steatosis': 5,
         'mesenchymal_cells': 6
     }
     full_img_ds = FullImageDataset(
