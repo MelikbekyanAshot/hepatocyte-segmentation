@@ -31,7 +31,7 @@ def dump_config(config: Dict, path: str):
 
 
 def get_dataloaders(root_path: str, batch_size: int, val_size: float = 0.2) \
-        -> Tuple[DataLoader, DataLoader]:
+        -> Tuple[DataLoader, DataLoader, DataLoader]:
     """Split image-mask patches into 2 groups: train and val.
     Data directories structure:
         sample_number:
@@ -42,45 +42,39 @@ def get_dataloaders(root_path: str, batch_size: int, val_size: float = 0.2) \
                 masks - mask tiles.
     """
     sample_folders = os.listdir(root_path)
-
-    # mask_patch_paths = []
-    # for folder in sample_folders:
-    #     cur_dir = os.path.join(root_path, folder, 'patches', 'masks')
-    #     cur_paths = []
-    #     for mask_patch_path in os.listdir(cur_dir):
-    #         cur_paths.append(os.path.join(cur_dir, mask_patch_path))
-    #     cur_paths.sort(key=lambda p: int(p[p.rfind('_') + 1:p.rfind('.')]))
-    #     mask_patch_paths.extend(cur_paths)
-    #
-    # image_patch_paths = []
-    # for folder in sample_folders:
-    #     cur_dir = os.path.join(root_path, folder, 'patches', 'images')
-    #     cur_paths = []
-    #     for image_patch_path in os.listdir(cur_dir):
-    #         cur_paths.append(os.path.join(cur_dir, image_patch_path))
-    #     cur_paths.sort(key=lambda p: int(p[p.rfind('_') + 1:p.rfind('.')]))
-    #     image_patch_paths.extend(cur_paths)
-
-    mask_patch_paths, image_patch_paths = [], []
+    train_val_mask_patch_paths, train_val_image_patch_paths = [], []
+    test_mask_patch_paths, test_image_patch_paths = [], []
 
     for folder in sample_folders:
+        mask_dir = os.path.join(root_path, folder, 'patches', 'masks')
+        if not os.path.exists(mask_dir):
+            os.mkdir(mask_dir)
+
+        image_dir = os.path.join(root_path, folder, 'patches', 'images')
+        if not os.path.exists(image_dir):
+            os.mkdir(image_dir)
+
         if folder == '7939_20_310320201319_7':
             # This is temporally crunch for testing
-            continue
-        mask_dir = os.path.join(root_path, folder, 'patches', 'masks')
-        image_dir = os.path.join(root_path, folder, 'patches', 'images')
+            for patch_path in os.listdir(mask_dir):
+                test_mask_patch_paths.append(patch_path)
+            for patch_path in os.listdir(image_dir):
+                test_image_patch_paths.append(patch_path)
+        else:
+            for patch_path in os.listdir(mask_dir):
+                train_val_mask_patch_paths.append(os.path.join(mask_dir, patch_path))
 
-        for patch_path in os.listdir(mask_dir):
-            mask_patch_paths.append(os.path.join(mask_dir, patch_path))
+            for patch_path in os.listdir(image_dir):
+                train_val_image_patch_paths.append(os.path.join(image_dir, patch_path))
 
-        for patch_path in os.listdir(image_dir):
-            image_patch_paths.append(os.path.join(image_dir, patch_path))
+    train_val_mask_patch_paths = sorted(train_val_mask_patch_paths)
+    train_val_image_patch_paths = sorted(train_val_image_patch_paths)
 
-    mask_patch_paths = sorted(mask_patch_paths)
-    image_patch_paths = sorted(image_patch_paths)
+    test_mask_patch_paths = sorted(test_mask_patch_paths)
+    test_image_patch_paths = sorted(test_image_patch_paths)
 
     train_images, val_images, train_masks, val_masks = \
-        train_test_split(image_patch_paths, mask_patch_paths, test_size=val_size)
+        train_test_split(train_val_image_patch_paths, train_val_mask_patch_paths, test_size=val_size)
 
     transforms = Compose([
         VerticalFlip(p=0.5),
@@ -89,8 +83,10 @@ def get_dataloaders(root_path: str, batch_size: int, val_size: float = 0.2) \
     ])
     train_patch_ds = PatchDataset(image_paths=train_images, label_paths=train_masks, transform=transforms)
     val_patch_ds = PatchDataset(image_paths=val_images, label_paths=val_masks)
+    test_patch_ds = PatchDataset(image_paths=test_image_patch_paths, label_paths=test_mask_patch_paths)
     logger.info(f"\nTrain samples: {len(train_patch_ds)}"
-                f"\nVal samples: {len(val_patch_ds)}")
+                f"\nVal samples: {len(val_patch_ds)}"
+                f"\nTest samples: {len(test_patch_ds)}")
     num_workers = 0 if os.name == 'nt' else os.cpu_count() - 1  # set 0 for Windows
     train_dataloader = DataLoader(
         train_patch_ds, batch_size=batch_size, shuffle=True,
@@ -98,41 +94,10 @@ def get_dataloaders(root_path: str, batch_size: int, val_size: float = 0.2) \
     val_dataloader = DataLoader(
         val_patch_ds, batch_size=batch_size, shuffle=False,
         num_workers=num_workers, drop_last=True)
-    return train_dataloader, val_dataloader
-
-
-def split_mask(mask: torch.Tensor, n_channels: int) -> torch.Tensor:
-    """Split original 2D-mask array into multichannel array.
-    Input size: [B, H, W], output size: [B, N, H, W].
-
-    Args:
-        mask - original 2D mask.
-        n_channels - number of channels to extract.
-
-    Returns:
-        splitted_mask - multichannel mask with separate channel for every type of cell.
-    """
-    B, _, H, W = mask.size()
-    splitted_mask = torch.zeros((B, n_channels, H, W), dtype=torch.float)
-
-    for i in range(n_channels):
-        splitted_mask[:, i] = (mask == i).squeeze() * i
-
-    return splitted_mask
-
-
-def merge_mask(mask: torch.Tensor):
-    """Merge multichannel mask into 2D-array.
-    Input size: [B, N, H, W], output size: [B, H, W].
-
-    Args:
-        mask (torch.Tensor) - multichannel mask.
-
-    Returns:
-        merged_msak (torch,Tensor) - 2D mask.
-    """
-    merged_mask = mask.sum(axis=1)
-    return merged_mask
+    test_dataloader = DataLoader(
+        test_patch_ds, batch_size=batch_size, shuffle=False,
+        num_workers=num_workers, drop_last=True)
+    return train_dataloader, val_dataloader, test_dataloader
 
 
 if __name__ == '__main__':
