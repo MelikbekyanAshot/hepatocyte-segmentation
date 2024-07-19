@@ -13,7 +13,7 @@ def plot_batch(batch):
     fig, axes = plt.subplots(batch_size, 3, figsize=(7, 1.5 * batch_size))
     axes[0][0].set_title('Image')
     axes[0][1].set_title('Label')
-    cmap = ListedColormap(['white', 'red'])
+    cmap = ListedColormap(['white', 'red', 'green', 'blue', 'cyan', 'yellow', 'magenta'])
 
     for i, (plt_img, plt_mask) in enumerate(zip(img, mask)):
         plt_img = plt_img.permute(1, 2, 0)
