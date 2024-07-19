@@ -2,6 +2,7 @@ import time
 
 import torch.jit
 from pytorch_lightning import Trainer, seed_everything
+from segmentation_models_pytorch import Unet
 from torchinfo import summary
 
 import wandb
@@ -16,7 +17,7 @@ if __name__ == '__main__':
     train_config = config['TRAIN']
     root = config['PATH']
     wandb_config = config['WANDB']
-    train_dl, val_dl = get_dataloaders(root_path=root, batch_size=train_config['BATCH_SIZE'])
+    train_dl, val_dl, test_dl = get_dataloaders(root_path=root, batch_size=train_config['BATCH_SIZE'])
     seg_model = SegmentationModel()
     trainer = Trainer(
         max_epochs=train_config['N_EPOCHS'])
@@ -38,11 +39,19 @@ if __name__ == '__main__':
         model=seg_model,
         train_dataloaders=train_dl,
         val_dataloaders=val_dl)
-    trainer.test(model=seg_model, dataloaders=val_dl)
-    weights_file_name = f"{wandb_config['NAME']}_scripted.pth"
+    trainer.test(model=seg_model, dataloaders=test_dl)
+
+    # Save jit weights
+    jit_weights_file_name = f"{wandb_config['NAME']}_scripted.pth"
     dummy_input = torch.randn(train_config['BATCH_SIZE'], 3, 128, 128)
     with torch.no_grad():
         traced_cell = torch.jit.trace(seg_model.model, dummy_input)
-    torch.jit.save(traced_cell, weights_file_name)
-    wandb.save(weights_file_name)
+    torch.jit.save(traced_cell, jit_weights_file_name)
+    wandb.save(jit_weights_file_name)
+
+    # Save state dict
+    state_dict_weights = f"{wandb_config['NAME']}_state_dict.pth"
+    torch.save(seg_model.state_dict(), state_dict_weights)
+    wandb.save(state_dict_weights)
+
     wandb.finish()
