@@ -54,7 +54,7 @@ def get_dataloaders(root_path: str, batch_size: int, val_size: float = 0.2) \
         if not os.path.exists(image_dir):
             os.mkdir(image_dir)
 
-        if folder == '7939_20_310320201319_7':
+        if folder in {'7939_20_310320201319_3', '7939_20_310320201319_4', '7939_20_310320201319_7'}:
             # This is temporally crunch for testing
             for patch_path in os.listdir(mask_dir):
                 test_mask_patch_paths.append(os.path.join(mask_dir, patch_path))
