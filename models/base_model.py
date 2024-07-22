@@ -93,6 +93,9 @@ class SegmentationModel(LightningModule):
         self.test_table = wandb.Table(columns=['sample'])
         self.test_gt_labels = []
         self.test_pred_labels = []
+        self.test_epoch_loss = []
+        self.test_epoch_f1 = []
+        self.test_epoch_iou = []
 
     def test_step(self, batch, batch_idx):
         image, mask = batch
@@ -128,6 +131,15 @@ class SegmentationModel(LightningModule):
             self.test_table.add_data(masked_image)
 
     def on_test_epoch_end(self) -> None:
+        mean_loss = np.mean(self.test_epoch_loss)
+        mean_f1 = np.mean(self.test_epoch_f1)
+        mean_iou = np.mean(self.test_epoch_iou)
+        wandb.log({
+            'Test/EpochLoss': mean_loss,
+            'Test/EpochF1': mean_f1,
+            'Test/EpochIoU': mean_iou}
+        )
+
         wandb.log({f"Gallery/{WANDB_CONFIG['NAME'] or self.model.name}": self.test_table})
         class_names = [label.replace('hepatocyte_', '') for label in WANDB_CONFIG['IDX2LABEL'].values()]
         wandb.log({
@@ -154,6 +166,10 @@ class SegmentationModel(LightningModule):
             self.val_epoch_loss.append(loss.item())
             self.val_epoch_f1.append(metrics.F1)
             self.val_epoch_iou.append(metrics.IoU)
+        elif mode == 'Test':
+            self.test_epoch_loss.append(loss.item())
+            self.test_epoch_f1.append(metrics.F1)
+            self.test_epoch_iou.append(metrics.IoU)
 
     def configure_optimizers(self):
         optimizer = self.optimizer(
