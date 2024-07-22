@@ -4,11 +4,9 @@ File contains utility functions to get dataloaders and config file.
 import os
 from typing import Tuple, Dict
 
-import torch
 import yaml
 from albumentations import Compose, VerticalFlip, HorizontalFlip, RandomRotate90
 from loguru import logger
-import numpy as np
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from yaml import SafeLoader
@@ -30,7 +28,7 @@ def dump_config(config: Dict, path: str):
         yaml.dump(config, f)
 
 
-def get_dataloaders(root_path: str, batch_size: int, val_size: float = 0.2) \
+def get_dataloaders(root_path: str, patches_path: str, batch_size: int, val_size: float = 0.2) \
         -> Tuple[DataLoader, DataLoader, DataLoader]:
     """Split image-mask patches into 2 groups: train and val.
     Data directories structure:
@@ -40,21 +38,27 @@ def get_dataloaders(root_path: str, batch_size: int, val_size: float = 0.2) \
             patches:
                 images - image tiles.
                 masks - mask tiles.
+
+    Args:
+        root_path (str) - path to directory with data.
+        patches_path (str) - name of directory with patches (for experiments purpose).
+        batch_size (int) - number of samples in batch.
+        val_size (float) - percent of samples for validation.
     """
     sample_folders = os.listdir(root_path)
     train_val_mask_patch_paths, train_val_image_patch_paths = [], []
     test_mask_patch_paths, test_image_patch_paths = [], []
 
     for folder in sample_folders:
-        mask_dir = os.path.join(root_path, folder, 'patches', 'masks')
+        mask_dir = os.path.join(root_path, folder, patches_path, 'masks')
         if not os.path.exists(mask_dir):
             os.mkdir(mask_dir)
 
-        image_dir = os.path.join(root_path, folder, 'patches', 'images')
+        image_dir = os.path.join(root_path, folder, patches_path, 'images')
         if not os.path.exists(image_dir):
             os.mkdir(image_dir)
 
-        if folder in {'7939_20_310320201319_3', '7939_20_310320201319_4', '7939_20_310320201319_7'}:
+        if folder in {'7939_20_310320201319_7'}:  # '7939_20_310320201319_3', '7939_20_310320201319_4',
             # This is temporally crunch for testing
             for patch_path in os.listdir(mask_dir):
                 test_mask_patch_paths.append(os.path.join(mask_dir, patch_path))
