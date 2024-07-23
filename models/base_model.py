@@ -18,18 +18,22 @@ WANDB_CONFIG = CONFIG['WANDB']
 
 
 class SegmentationModel(LightningModule):
+    """Class for segmentation model's training."""
     def __init__(self):
         super().__init__()
         self.model = get_model(**MODEL_CONFIG)
         self.loss_fn = get_loss(**LOSS_CONFIG)
         self.optimizer = get_optimizer(OPT_CONFIG)
         self.test_table = None
-        self.train_epoch_loss = []
-        self.train_epoch_f1 = []
-        self.train_epoch_iou = []
-        self.val_epoch_loss = []
-        self.val_epoch_f1 = []
-        self.val_epoch_iou = []
+        self.train_history = {
+            'loss': [], 'f1_score': [], 'iou': [],
+            'precision': [], 'recall': []}
+        self.val_history = {
+            'loss': [], 'f1_score': [], 'iou': [],
+            'precision': [], 'recall': []}
+        self.test_history = {
+            'loss': [], 'f1_score': [], 'iou': [],
+            'precision': [], 'recall': []}
         self.test_gt_labels = []
         self.test_pred_labels = []
 
@@ -37,9 +41,9 @@ class SegmentationModel(LightningModule):
         return self.model(img)
 
     def on_train_epoch_start(self) -> None:
-        self.train_epoch_loss = []
-        self.train_epoch_f1 = []
-        self.train_epoch_iou = []
+        self.train_history = {
+            'loss': [], 'f1_score': [], 'iou': [],
+            'precision': [], 'recall': []}
 
     def training_step(self, batch, batch_idx):
         image, mask = batch
@@ -49,24 +53,18 @@ class SegmentationModel(LightningModule):
         prob_mask = logits_mask.sigmoid()
         pred_mask = prob_mask.argmax(dim=1, keepdim=True)
         metrics = compute_metrics(pred_mask, mask, mode=MODE, num_classes=OUTPUT_CLASSES)
-        self.log_batch_results(loss, metrics, 'Train')
+        self.log_batch_results(loss.item(), metrics, mode='Train')
         return loss
 
     def on_train_epoch_end(self) -> None:
-        mean_loss = np.mean(self.train_epoch_loss)
-        mean_f1 = np.mean(self.train_epoch_f1)
-        mean_iou = np.mean(self.train_epoch_iou)
-        wandb.log({
-            'Train/EpochLoss': mean_loss,
-            'Train/EpochF1': mean_f1,
-            'Train/EpochIoU': mean_iou,
-            'epoch': self.current_epoch}
-        )
+        self.__log_epoch_mean_metrics(
+            mode='Train', loss=self.train_history['loss'],
+            f1_score=self.train_history['f1_score'], iou=self.train_history['iou'])
 
     def on_validation_epoch_start(self) -> None:
-        self.val_epoch_loss = []
-        self.val_epoch_f1 = []
-        self.val_epoch_iou = []
+        self.val_history = {
+            'loss': [], 'f1_score': [], 'iou': [],
+            'precision': [], 'recall': []}
 
     def validation_step(self, batch, batch_idx):
         image, mask = batch
@@ -76,26 +74,20 @@ class SegmentationModel(LightningModule):
         prob_mask = logits_mask.sigmoid()
         pred_mask = prob_mask.argmax(dim=1, keepdim=True)
         metrics = compute_metrics(pred_mask, mask, mode=MODE, num_classes=OUTPUT_CLASSES)
-        self.log_batch_results(loss, metrics, 'Val')
+        self.log_batch_results(loss.item(), metrics, mode='Val')
 
     def on_validation_epoch_end(self) -> None:
-        mean_loss = np.mean(self.val_epoch_loss)
-        mean_f1 = np.mean(self.val_epoch_f1)
-        mean_iou = np.mean(self.val_epoch_iou)
-        wandb.log({
-            'Val/EpochLoss': mean_loss,
-            'Val/EpochF1': mean_f1,
-            'Val/EpochIoU': mean_iou,
-            'epoch': self.current_epoch}
-        )
+        self.__log_epoch_mean_metrics(
+            mode='Val', loss=self.val_history['loss'],
+            f1_score=self.val_history['f1_score'], iou=self.val_history['iou'])
 
     def on_test_epoch_start(self) -> None:
         self.test_table = wandb.Table(columns=['sample'])
+        self.test_history = {
+            'loss': [], 'f1_score': [], 'iou': [],
+            'precision': [], 'recall': []}
         self.test_gt_labels = []
         self.test_pred_labels = []
-        self.test_epoch_loss = []
-        self.test_epoch_f1 = []
-        self.test_epoch_iou = []
 
     def test_step(self, batch, batch_idx):
         image, mask = batch
@@ -105,8 +97,7 @@ class SegmentationModel(LightningModule):
         prob_mask = logits_mask.sigmoid()
         pred_mask = prob_mask.argmax(dim=1, keepdim=True)
         metrics = compute_metrics(pred_mask, mask, mode=MODE, num_classes=OUTPUT_CLASSES)
-        wandb.log({'Test/Loss': loss.item()})
-        wandb.log(metrics.to_dict('Test'))
+        self.log_batch_results(loss.item(), metrics, mode='Test')
         self.test_gt_labels.extend(mask.ravel().cpu().numpy())
         self.test_pred_labels.extend(pred_mask.ravel().cpu().numpy())
         self.__add_images_to_table(image, mask, pred_mask)
@@ -131,14 +122,9 @@ class SegmentationModel(LightningModule):
             self.test_table.add_data(masked_image)
 
     def on_test_epoch_end(self) -> None:
-        mean_loss = np.mean(self.test_epoch_loss)
-        mean_f1 = np.mean(self.test_epoch_f1)
-        mean_iou = np.mean(self.test_epoch_iou)
-        wandb.log({
-            'Test/EpochLoss': mean_loss,
-            'Test/EpochF1': mean_f1,
-            'Test/EpochIoU': mean_iou}
-        )
+        self.__log_epoch_mean_metrics(
+            mode='Test', loss=self.test_history['loss'],
+            f1_score=self.test_history['f1_score'], iou=self.test_history['iou'])
 
         wandb.log({f"Gallery/{WANDB_CONFIG['NAME'] or self.model.name}": self.test_table})
         class_names = [label.replace('hepatocyte_', '') for label in WANDB_CONFIG['IDX2LABEL'].values()]
@@ -149,27 +135,44 @@ class SegmentationModel(LightningModule):
             )
         })
 
+    def __log_epoch_mean_metrics(self, mode: str, loss, f1_score, iou):
+        mean_loss = np.mean(loss)
+        mean_f1 = np.mean(f1_score)
+        mean_iou = np.mean(iou)
+        wandb.log({
+            f'{mode}/EpochLoss': mean_loss,
+            f'{mode}/EpochF1': mean_f1,
+            f'{mode}/EpochIoU': mean_iou,
+            'epoch': self.current_epoch}
+        )
+
     def predict_step(self, image, batch_idx):
         logits_mask = self.model(image.float())
         prob_mask = logits_mask.sigmoid()
         pred_mask = prob_mask.argmax(dim=1, keepdim=True)
         return pred_mask
 
-    def log_batch_results(self, loss, metrics, mode):
-        wandb.log({f"{mode}/Loss": loss.item()})
+    def log_batch_results(self, loss: float, metrics, mode):
+        wandb.log({f"{mode}/Loss": loss})
         wandb.log(metrics.to_dict(mode=mode))
         if mode == 'Train':
-            self.train_epoch_loss.append(loss.item())
-            self.train_epoch_f1.append(metrics.F1)
-            self.train_epoch_iou.append(metrics.IoU)
+            self.train_history['loss'].append(loss)
+            self.train_history['f1_score'].append(metrics.F1)
+            self.train_history['iou'].append(metrics.IoU)
+            self.train_history['precision'].append(metrics.precision)
+            self.train_history['recall'].append(metrics.recall)
         elif mode == 'Val':
-            self.val_epoch_loss.append(loss.item())
-            self.val_epoch_f1.append(metrics.F1)
-            self.val_epoch_iou.append(metrics.IoU)
+            self.val_history['loss'].append(loss)
+            self.val_history['f1_score'].append(metrics.F1)
+            self.val_history['iou'].append(metrics.IoU)
+            self.val_history['precision'].append(metrics.precision)
+            self.val_history['recall'].append(metrics.recall)
         elif mode == 'Test':
-            self.test_epoch_loss.append(loss.item())
-            self.test_epoch_f1.append(metrics.F1)
-            self.test_epoch_iou.append(metrics.IoU)
+            self.test_history['loss'].append(loss)
+            self.test_history['f1_score'].append(metrics.F1)
+            self.test_history['iou'].append(metrics.IoU)
+            self.test_history['precision'].append(metrics.precision)
+            self.test_history['recall'].append(metrics.recall)
 
     def configure_optimizers(self):
         optimizer = self.optimizer(
