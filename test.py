@@ -1,12 +1,10 @@
-import os
-
-import wandb
+import torch
 from pytorch_lightning import Trainer, seed_everything
 from torchinfo import summary
 
+import wandb
 from models.base_model import SegmentationModel
 from utils.data_utils import get_dataloaders, get_config
-from utils.model_utils import save_model
 
 seed_everything(123)
 
@@ -14,14 +12,15 @@ seed_everything(123)
 if __name__ == '__main__':
     config = get_config()
     *_, test_dl = get_dataloaders(
-        path_to_dir=os.path.dirname(config['PATH']['PATCHES']['STEATOSIS']['IMAGE']),
+        root_path=config['PATH'], patches_path='patches',
         batch_size=config['TRAIN']['BATCH_SIZE'])
     seg_model = SegmentationModel()
+    seg_model.model.load_state_dict(torch.load('weights/deeplabv3-resnet50-5ep_state_dict.pth'), strict=False)
     trainer = Trainer()
     wandb.login()
     wandb.init(
         project='hepatocyte-segmentation',
-        name=f"test-{seg_model.model.name}",
+        name=f"test-{config['TRAIN']['MODEL']['architecture']}-{config['TRAIN']['MODEL']['encoder_name']}",
         config={
             **config['TRAIN']['MODEL'],
             **config['TRAIN']['LOSS'],

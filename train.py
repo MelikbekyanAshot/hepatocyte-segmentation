@@ -17,8 +17,9 @@ if __name__ == '__main__':
     train_config = config['TRAIN']
     root = config['PATH']
     wandb_config = config['WANDB']
-    train_dl, val_dl, test_dl = get_dataloaders(root_path=root, patches_path='patches',
-                                                batch_size=train_config['BATCH_SIZE'])
+    train_dl, val_dl, test_dl = get_dataloaders(
+        root_path=root, patches_path='patches_st_norm_nn_mc',
+        batch_size=train_config['BATCH_SIZE'], val_size=0.9)
     seg_model = SegmentationModel()
     trainer = Trainer(
         max_epochs=train_config['N_EPOCHS'])

@@ -26,7 +26,13 @@ def plot_batch(batch):
         axes[i][1].imshow(plt_mask, alpha=0.3, cmap=local_cmap)
         axes[i][1].axis('off')
 
-        idx2label = {1: 'steatosis'}
+        idx2label = {
+            1: 'balloon_dystrophy',
+            2: 'hepatocyte_inclusion',
+            3: 'hepatocyte_non_nuclei',
+            4: 'hepatocyte_relatively_normal',
+            5: 'hepatocyte_steatosis',
+            6: 'mesenchymal_cells'}
         class_names = {idx: label for idx, label in idx2label.items()}
         legend_patches = [mpatches.Patch(color=cmap.colors[idx], label=name)
                           for idx, name in class_names.items() if idx in np.unique(plt_mask)]

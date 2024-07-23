@@ -105,6 +105,9 @@ def get_dataloaders(root_path: str, patches_path: str, batch_size: int, val_size
 
 
 if __name__ == '__main__':
-    data_loader, *_ = get_dataloaders(root_path='D:\\Hepatocyte', batch_size=16, val_size=0.1)
-    batch = next(iter(data_loader))
-    plot_batch(batch)
+    data_loader, *_ = get_dataloaders(
+        root_path='D:\\Hepatocyte', patches_path='patches_st_norm_nn_mc_512',
+        batch_size=4, val_size=0.1)
+    while True:
+        batch = next(iter(data_loader))
+        plot_batch(batch)
