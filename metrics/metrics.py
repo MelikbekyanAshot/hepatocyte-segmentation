@@ -19,6 +19,6 @@ def compute_metrics(output, target, mode: str, num_classes: int) -> Metrics:
     tp, fp, fn, tn = get_stats(output, target, mode=mode, num_classes=num_classes)
     iou = iou_score(tp, fp, fn, tn, reduction="macro").item()
     f1 = f1_score(tp, fp, fn, tn, reduction="macro").item()
-    precision_score = precision(tp, fp, fn, tn).item()
-    recall_score = recall(tp, fp, fn, tn).item()
+    precision_score = precision(tp, fp, fn, tn, reduction="macro").item()
+    recall_score = recall(tp, fp, fn, tn, reduction="macro").item()
     return Metrics(F1=f1, IoU=iou, precision=precision_score, recall=recall_score)
