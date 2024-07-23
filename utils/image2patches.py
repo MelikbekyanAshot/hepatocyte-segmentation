@@ -66,8 +66,7 @@ class FullImageDataset(Dataset):
         for i in range(nrow):
             for j in range(ncol):
                 mask_patch = mask_tiles[i][j]
-                borders = (mask_patch[0, :] + mask_patch[:, 0] + mask_patch[-1, :] + mask_patch[:, -1])
-                if mask_patch.sum().item() > 0 and borders.sum() == 0:
+                if mask_patch.sum().item() > 0:
                     img_with_label.append(img_tiles[i][j])
                     mask_with_label.append(mask_patch)
         return np.array(img_with_label), np.array(mask_with_label)
@@ -89,15 +88,17 @@ class FullImageDataset(Dataset):
 def convert_dataset(dataset, root_path):
     for ds_batch in tqdm(dataset):
         logger.info(f"Converting {ds_batch['sample_name']}")
-        os.mkdir(os.path.join(root_path, ds_batch['sample_name'], 'patches'))
-        os.mkdir(os.path.join(root_path, ds_batch['sample_name'], 'patches', 'images'))
-        os.mkdir(os.path.join(root_path, ds_batch['sample_name'], 'patches', 'masks'))
+        patches_dir_name = 'patches'
+        patch_path = os.path.join(root_path, ds_batch['sample_name'], patches_dir_name)
+        os.mkdir(patch_path)
+        os.mkdir(os.path.join(root_path, ds_batch['sample_name'], patches_dir_name, 'images'))
+        os.mkdir(os.path.join(root_path, ds_batch['sample_name'], patches_dir_name, 'masks'))
         k = 0
         for image, mask in zip(ds_batch['image'], ds_batch['mask']):
             img = Image.fromarray(image, 'RGB')
-            img.save(os.path.join(root_path, ds_batch['sample_name'], 'patches', 'images', f'image_{k}.png'))
+            img.save(os.path.join(root_path, ds_batch['sample_name'], patches_dir_name, 'images', f'image_{k}.png'))
             mask = Image.fromarray(mask)
-            mask.save(os.path.join(root_path, ds_batch['sample_name'], 'patches', 'masks', f'mask_{k}.png'))
+            mask.save(os.path.join(root_path, ds_batch['sample_name'], patches_dir_name, 'masks', f'mask_{k}.png'))
             k += 1
         logger.success(f"Converted {ds_batch['sample_name']}")
 
@@ -109,7 +110,7 @@ if __name__ == '__main__':
     img_paths = [os.path.join(folder, 'img.png') for folder in folders]
     mask_paths = [os.path.join(folder, 'label.png') for folder in folders]
     label_paths = [os.path.join(folder, 'label_names.txt') for folder in folders]
-    patch_width = patch_height = 128
+    patch_width = patch_height = 512
     global_mapping = {
         '_background_': 0,
         'balloon_dystrophy': 1,
@@ -121,7 +122,7 @@ if __name__ == '__main__':
     }
     full_img_ds = FullImageDataset(
         image_paths=img_paths, mask_paths=mask_paths, label_paths=label_paths, sample_names=sample_names,
-        patch_width=patch_width, patch_height=patch_height, patch_step=patch_width // 4,
+        patch_width=patch_width, patch_height=patch_height, patch_step=patch_width // 2,
         label2idx=global_mapping
     )
     convert_dataset(full_img_ds, os.path.abspath('D:\\Hepatocyte'))
