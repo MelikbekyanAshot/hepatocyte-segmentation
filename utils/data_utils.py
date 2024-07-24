@@ -2,6 +2,7 @@
 File contains utility functions to get dataloaders and config file.
 """
 import os
+import random
 from typing import Tuple, Dict
 
 import yaml
@@ -28,7 +29,7 @@ def dump_config(config: Dict, path: str):
         yaml.dump(config, f)
 
 
-def get_dataloaders(root_path: str, patches_path: str, batch_size: int, val_size: float = 0.2) \
+def get_dataloaders(train_val_folders, test_folders, root_path: str, patches_path: str, batch_size: int, val_size: float = 0.2) \
         -> Tuple[DataLoader, DataLoader, DataLoader]:
     """Split image-mask patches into 2 groups: train and val.
     Data directories structure:
@@ -40,36 +41,33 @@ def get_dataloaders(root_path: str, patches_path: str, batch_size: int, val_size
                 masks - mask tiles.
 
     Args:
+        train_val_folders (List[str]) - paths to folders for train and val.
+        test_folders (List[str]) - paths to folders for test.
         root_path (str) - path to directory with data.
         patches_path (str) - name of directory with patches (for experiments purpose).
         batch_size (int) - number of samples in batch.
         val_size (float) - percent of samples for validation.
     """
-    sample_folders = os.listdir(root_path)
     train_val_mask_patch_paths, train_val_image_patch_paths = [], []
     test_mask_patch_paths, test_image_patch_paths = [], []
 
-    for folder in sample_folders:
+    for folder in train_val_folders:
         mask_dir = os.path.join(root_path, folder, patches_path, 'masks')
-        if not os.path.exists(mask_dir):
-            os.mkdir(mask_dir)
-
         image_dir = os.path.join(root_path, folder, patches_path, 'images')
-        if not os.path.exists(image_dir):
-            os.mkdir(image_dir)
 
-        if folder in {'7939_20_310320201319_7'}:  # '7939_20_310320201319_3', '7939_20_310320201319_4',
-            # This is temporally crunch for testing
-            for patch_path in os.listdir(mask_dir):
-                test_mask_patch_paths.append(os.path.join(mask_dir, patch_path))
-            for patch_path in os.listdir(image_dir):
-                test_image_patch_paths.append(os.path.join(image_dir, patch_path))
-        else:
-            for patch_path in os.listdir(mask_dir):
-                train_val_mask_patch_paths.append(os.path.join(mask_dir, patch_path))
+        for patch_path in os.listdir(mask_dir):
+            train_val_mask_patch_paths.append(os.path.join(mask_dir, patch_path))
+        for patch_path in os.listdir(image_dir):
+            train_val_image_patch_paths.append(os.path.join(image_dir, patch_path))
 
-            for patch_path in os.listdir(image_dir):
-                train_val_image_patch_paths.append(os.path.join(image_dir, patch_path))
+    for folder in test_folders:
+        mask_dir = os.path.join(root_path, folder, patches_path, 'masks')
+        image_dir = os.path.join(root_path, folder, patches_path, 'images')
+
+        for patch_path in os.listdir(mask_dir):
+            test_mask_patch_paths.append(os.path.join(mask_dir, patch_path))
+        for patch_path in os.listdir(image_dir):
+            test_image_patch_paths.append(os.path.join(image_dir, patch_path))
 
     train_val_mask_patch_paths = sorted(train_val_mask_patch_paths)
     train_val_image_patch_paths = sorted(train_val_image_patch_paths)
@@ -105,8 +103,12 @@ def get_dataloaders(root_path: str, patches_path: str, batch_size: int, val_size
 
 
 if __name__ == '__main__':
+    root = 'D:\\Hepatocyte'
+    folders = os.listdir(root)
+    test_folders = random.sample(folders, 3)
     data_loader, *_ = get_dataloaders(
-        root_path='D:\\Hepatocyte', patches_path='patches_st_norm_nn_mc_512',
+        root_path=root, train_val_folders=set(folders).difference(test_folders), test_folders=test_folders,
+        patches_path='patches_st_norm_nn_mc',
         batch_size=4, val_size=0.1)
     while True:
         batch = next(iter(data_loader))
