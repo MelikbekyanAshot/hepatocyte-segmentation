@@ -62,7 +62,7 @@ if __name__ == '__main__':
     # Save jit weights
     try:
         jit_weights_file_name = f"{wandb_config['NAME']}_scripted.pth"
-        dummy_input = torch.randn(train_config['BATCH_SIZE'], 3, 128, 128)
+        dummy_input = torch.randn(train_config['BATCH_SIZE'], 3, 256, 256)
         with torch.no_grad():
             traced_cell = torch.jit.trace(seg_model.model, dummy_input)
         torch.jit.save(traced_cell, jit_weights_file_name)
