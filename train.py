@@ -1,28 +1,36 @@
+import os
 import time
+import random
 
 import torch.jit
 from loguru import logger
 from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning.callbacks import EarlyStopping
 from torchinfo import summary
 
 import wandb
 from models.base_model import SegmentationModel
 from utils.data_utils import get_dataloaders, get_config
 
-seed_everything(1234)
+seed_everything(42, workers=True)
 
 
 if __name__ == '__main__':
     config = get_config()
     train_config = config['TRAIN']
     root = config['PATH']
-    wandb_config = config['WANDB']
+    folders = os.listdir(root)
+    test_folders = random.sample(folders, 3)
+    logger.info(f"Test folders: {test_folders}")
     train_dl, val_dl, test_dl = get_dataloaders(
-        root_path=root, patches_path='patches_st_norm_nn_mc',
-        batch_size=train_config['BATCH_SIZE'], val_size=0.2)
+        root_path=root,
+        train_val_folders=set(folders).difference(test_folders),
+        test_folders=test_folders,
+        patches_path='patches_st_norm_nn_mc',
+        batch_size=train_config['BATCH_SIZE'],
+        val_size=0.1)
     seg_model = SegmentationModel()
-    trainer = Trainer(
-        max_epochs=train_config['N_EPOCHS'])
+    wandb_config = config['WANDB']
     wandb.login()
     wandb.init(
         project=wandb_config['PROJECT'],
@@ -37,11 +45,22 @@ if __name__ == '__main__':
             'batch_size': train_config['BATCH_SIZE'],
         }
     )
+    trainer = Trainer(
+        max_epochs=train_config['N_EPOCHS'],
+        fast_dev_run=True,
+        accumulate_grad_batches=4,
+        benchmark=True,
+        callbacks=[EarlyStopping(monitor='Val/Loss')]
+    )
     trainer.fit(
         model=seg_model,
         train_dataloaders=train_dl,
-        val_dataloaders=val_dl)
-    trainer.test(model=seg_model, dataloaders=test_dl)
+        val_dataloaders=val_dl
+    )
+    trainer.test(
+        model=seg_model,
+        dataloaders=test_dl
+    )
 
     # Save jit weights
     try:
