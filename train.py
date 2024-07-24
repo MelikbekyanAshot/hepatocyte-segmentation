@@ -1,11 +1,10 @@
 import os
-import time
 import random
+import time
 
 import torch.jit
 from loguru import logger
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import EarlyStopping
 from torchinfo import summary
 
 import wandb
@@ -48,7 +47,7 @@ if __name__ == '__main__':
     trainer = Trainer(
         max_epochs=train_config['N_EPOCHS'],
         accumulate_grad_batches=4,
-        callbacks=[EarlyStopping(monitor='Val/Loss')]
+        # callbacks=[EarlyStopping(monitor='Val/Loss')]
     )
     trainer.fit(
         model=seg_model,
