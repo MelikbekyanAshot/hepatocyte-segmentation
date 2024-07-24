@@ -47,9 +47,7 @@ if __name__ == '__main__':
     )
     trainer = Trainer(
         max_epochs=train_config['N_EPOCHS'],
-        fast_dev_run=True,
         accumulate_grad_batches=4,
-        benchmark=True,
         callbacks=[EarlyStopping(monitor='Val/Loss')]
     )
     trainer.fit(
