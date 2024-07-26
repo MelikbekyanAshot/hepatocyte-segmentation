@@ -3,10 +3,10 @@ File contains utility functions to get dataloaders and config file.
 """
 import os
 import random
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 
 import yaml
-from albumentations import Compose, VerticalFlip, HorizontalFlip, RandomRotate90
+from albumentations import Compose, VerticalFlip, HorizontalFlip, RandomRotate90, Transpose
 from loguru import logger
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
@@ -29,7 +29,7 @@ def dump_config(config: Dict, path: str):
         yaml.dump(config, f)
 
 
-def get_dataloaders(train_val_folders, test_folders, root_path: str, patches_path: str, batch_size: int, val_size: float = 0.2) \
+def get_dataloaders_from_folders(train_val_folders, test_folders, root_path: str, patches_path: str, batch_size: int, val_size: float = 0.2) \
         -> Tuple[DataLoader, DataLoader, DataLoader]:
     """Split image-mask patches into 2 groups: train and val.
     Data directories structure:
@@ -100,6 +100,32 @@ def get_dataloaders(train_val_folders, test_folders, root_path: str, patches_pat
         test_patch_ds, batch_size=batch_size, shuffle=False,
         num_workers=num_workers, drop_last=True)
     return train_dataloader, val_dataloader, test_dataloader
+
+
+def get_dataloaders_from_patches(images: List[str], masks: List[str], batch_size: int, test_size: float = 0.2) \
+        -> Tuple[DataLoader, DataLoader]:
+    train_images, val_images, train_masks, val_masks = \
+        train_test_split(images, masks, test_size=test_size)
+    transforms = Compose([
+        VerticalFlip(p=0.5),
+        HorizontalFlip(p=0.5),
+        RandomRotate90(p=0.5),
+        Transpose(p=0.5)
+    ])
+    train_patch_ds = PatchDataset(image_paths=train_images, label_paths=train_masks, transform=transforms)
+    val_patch_ds = PatchDataset(image_paths=val_images, label_paths=val_masks)
+    logger.info(
+        f"\nTrain samples: {len(train_patch_ds)}"
+        f"\nVal samples: {len(val_patch_ds)}"
+    )
+    num_workers = 0 if os.name == 'nt' else os.cpu_count() - 1  # set 0 for Windows
+    train_dataloader = DataLoader(
+        train_patch_ds, batch_size=batch_size, shuffle=True,
+        num_workers=num_workers, drop_last=True)
+    val_dataloader = DataLoader(
+        val_patch_ds, batch_size=batch_size, shuffle=False,
+        num_workers=num_workers, drop_last=True)
+    return train_dataloader, val_dataloader
 
 
 if __name__ == '__main__':
