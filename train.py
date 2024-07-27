@@ -9,7 +9,7 @@ from torchinfo import summary
 
 import wandb
 from models.base_model import SegmentationModel
-from utils.data_utils import get_dataloaders, get_config
+from utils.data_utils import get_config, get_dataloaders_from_patches, get_dataloaders_from_folders
 
 seed_everything(42, workers=True)
 
@@ -17,17 +17,21 @@ seed_everything(42, workers=True)
 if __name__ == '__main__':
     config = get_config()
     train_config = config['TRAIN']
-    root = config['PATH']
-    folders = os.listdir(root)
-    test_folders = random.sample(folders, 3)
-    logger.info(f"Test folders: {test_folders}")
-    train_dl, val_dl, test_dl = get_dataloaders(
+    root = config['PATH']['ROOT']
+    patches = config['PATH']['PATCHES']
+    folders = set(os.listdir(root))
+    val_folders = random.sample(folders, 3)
+    test_folders = random.sample(folders.difference(val_folders), 2)
+    train_folders = folders.difference(val_folders).difference(test_folders)
+    train_dl, val_dl, test_dl = get_dataloaders_from_folders(
+        train_folders=list(train_folders),
+        val_folders=list(val_folders),
+        test_folders=list(test_folders),
         root_path=root,
-        train_val_folders=set(folders).difference(test_folders),
-        test_folders=test_folders,
-        patches_path='patches_st_norm_nn_mc',
-        batch_size=train_config['BATCH_SIZE'],
-        val_size=0.1)
+        patches_path=patches,
+        batch_size=train_config['BATCH_SIZE']
+    )
+
     seg_model = SegmentationModel()
     wandb_config = config['WANDB']
     wandb.login()
@@ -47,7 +51,6 @@ if __name__ == '__main__':
     trainer = Trainer(
         max_epochs=train_config['N_EPOCHS'],
         accumulate_grad_batches=4,
-        # callbacks=[EarlyStopping(monitor='Val/Loss')]
     )
     trainer.fit(
         model=seg_model,
@@ -62,7 +65,9 @@ if __name__ == '__main__':
     # Save jit weights
     try:
         jit_weights_file_name = f"{wandb_config['NAME']}_scripted.pth"
-        dummy_input = torch.randn(train_config['BATCH_SIZE'], 3, 256, 256)
+        dummy_input = torch.randn(
+            train_config['BATCH_SIZE'], 3,
+            train_config['PATCH_SIZE'], train_config['PATCH_SIZE'])
         with torch.no_grad():
             traced_cell = torch.jit.trace(seg_model.model, dummy_input)
         torch.jit.save(traced_cell, jit_weights_file_name)
