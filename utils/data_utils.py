@@ -29,7 +29,9 @@ def dump_config(config: Dict, path: str):
         yaml.dump(config, f)
 
 
-def get_dataloaders_from_folders(train_val_folders, test_folders, root_path: str, patches_path: str, batch_size: int, val_size: float = 0.2) \
+def get_dataloaders_from_folders(
+        train_folders: List[str], val_folders: List[str], test_folders: List[str],
+        root_path: str, patches_path: str, batch_size: int) \
         -> Tuple[DataLoader, DataLoader, DataLoader]:
     """Split image-mask patches into 2 groups: train and val.
     Data directories structure:
@@ -41,51 +43,59 @@ def get_dataloaders_from_folders(train_val_folders, test_folders, root_path: str
                 masks - mask tiles.
 
     Args:
-        train_val_folders (List[str]) - paths to folders for train and val.
+        train_folders (List[str]) - paths to folders for train.
+        val_folders (List[str]) - paths to folders for val.
         test_folders (List[str]) - paths to folders for test.
         root_path (str) - path to directory with data.
         patches_path (str) - name of directory with patches (for experiments purpose).
         batch_size (int) - number of samples in batch.
         val_size (float) - percent of samples for validation.
     """
-    train_val_mask_patch_paths, train_val_image_patch_paths = [], []
-    test_mask_patch_paths, test_image_patch_paths = [], []
-
-    for folder in train_val_folders:
-        mask_dir = os.path.join(root_path, folder, patches_path, 'masks')
+    train_img_patches, train_mask_patches = [], []
+    for folder in train_folders:
         image_dir = os.path.join(root_path, folder, patches_path, 'images')
-
-        for patch_path in os.listdir(mask_dir):
-            train_val_mask_patch_paths.append(os.path.join(mask_dir, patch_path))
+        mask_dir = os.path.join(root_path, folder, patches_path, 'masks')
         for patch_path in os.listdir(image_dir):
-            train_val_image_patch_paths.append(os.path.join(image_dir, patch_path))
+            train_img_patches.append(os.path.join(image_dir, patch_path))
+        for patch_path in os.listdir(mask_dir):
+            train_mask_patches.append(os.path.join(mask_dir, patch_path))
+    train_img_patches = sorted(train_img_patches)
+    train_mask_patches = sorted(train_mask_patches)
 
+    val_img_patches, val_mask_patches = [], []
+    for folder in val_folders:
+        image_dir = os.path.join(root_path, folder, patches_path, 'images')
+        mask_dir = os.path.join(root_path, folder, patches_path, 'masks')
+        for patch_path in os.listdir(image_dir):
+            val_img_patches.append(os.path.join(image_dir, patch_path))
+        for patch_path in os.listdir(mask_dir):
+            val_mask_patches.append(os.path.join(mask_dir, patch_path))
+    val_img_patches = sorted(val_img_patches)
+    val_mask_patches = sorted(val_mask_patches)
+
+    test_img_patches, test_mask_patches = [], []
     for folder in test_folders:
-        mask_dir = os.path.join(root_path, folder, patches_path, 'masks')
         image_dir = os.path.join(root_path, folder, patches_path, 'images')
-
-        for patch_path in os.listdir(mask_dir):
-            test_mask_patch_paths.append(os.path.join(mask_dir, patch_path))
+        mask_dir = os.path.join(root_path, folder, patches_path, 'masks')
         for patch_path in os.listdir(image_dir):
-            test_image_patch_paths.append(os.path.join(image_dir, patch_path))
-
-    train_val_mask_patch_paths = sorted(train_val_mask_patch_paths)
-    train_val_image_patch_paths = sorted(train_val_image_patch_paths)
-
-    test_mask_patch_paths = sorted(test_mask_patch_paths)
-    test_image_patch_paths = sorted(test_image_patch_paths)
-
-    train_images, val_images, train_masks, val_masks = \
-        train_test_split(train_val_image_patch_paths, train_val_mask_patch_paths, test_size=val_size)
+            test_img_patches.append(os.path.join(image_dir, patch_path))
+        for patch_path in os.listdir(mask_dir):
+            test_mask_patches.append(os.path.join(mask_dir, patch_path))
+    test_img_patches = sorted(test_img_patches)
+    test_mask_patches = sorted(test_mask_patches)
 
     transforms = Compose([
         VerticalFlip(p=0.5),
         HorizontalFlip(p=0.5),
-        RandomRotate90(p=0.5)
+        RandomRotate90(p=0.5),
+        Transpose(p=0.5)
     ])
-    train_patch_ds = PatchDataset(image_paths=train_images, label_paths=train_masks, transform=transforms)
-    val_patch_ds = PatchDataset(image_paths=val_images, label_paths=val_masks)
-    test_patch_ds = PatchDataset(image_paths=test_image_patch_paths, label_paths=test_mask_patch_paths)
+    train_patch_ds = PatchDataset(
+        image_paths=train_img_patches, label_paths=train_mask_patches, transform=transforms)
+    val_patch_ds = PatchDataset(
+        image_paths=val_img_patches, label_paths=val_mask_patches)
+    test_patch_ds = PatchDataset(
+        image_paths=test_img_patches, label_paths=test_mask_patches)
     logger.info(f"\nTrain samples: {len(train_patch_ds)}"
                 f"\nVal samples: {len(val_patch_ds)}"
                 f"\nTest samples: {len(test_patch_ds)}")
