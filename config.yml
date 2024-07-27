@@ -1,11 +1,13 @@
-PATH: D:\Hepatocyte
+PATH:
+  ROOT: D:\Hepatocyte
+  PATCHES: patches_overlap_128
 TRAIN:
   MODEL:
-    architecture:     pspnet  # Available architectures: https://smp.readthedocs.io/en/latest/models.html
+    architecture:     unet  # Available architectures: https://smp.readthedocs.io/en/latest/models.html
     encoder_name:     efficientnet-b3  # Available encoders: https://smp.readthedocs.io/en/latest/encoders.html
     encoder_weights:  imagenet # Keep blank for random initialization, or use available weights:
                                # https://segmentation-models-pytorch.readthedocs.io/en/latest/encoders.html
-    output_classes:   7  # Number of classes
+    output_classes:   5  # Number of classes
   LOSS:
     function:         dice  # Available loss functions: dice, cross_entropy, soft_cross_entropy, jaccard, focal
     mode:             multiclass  # Available modes: binary, multiclass. Use for dice, jaccard and focal losses
@@ -13,14 +15,15 @@ TRAIN:
   LEARNING_RATE:      0.0003
   N_EPOCHS:           5
   BATCH_SIZE:         8
+  PATCH_SIZE:         128
 WANDB:
   IDX2LABEL:  # index to label mapping for grouped data
     0: background
-    1: hepatocyte_balloon_dystrophy
-    2: hepatocyte_inclusion
-    3: hepatocyte_non_nuclei
-    4: hepatocyte_relatively_normal
-    5: hepatocyte_steatosis
-    6: mesenchymal_cells
+#    1: hepatocyte_balloon_dystrophy
+#    2: hepatocyte_inclusion
+    1: hepatocyte_non_nuclei
+    2: hepatocyte_relatively_normal
+    3: hepatocyte_steatosis
+    4: mesenchymal_cells
   PROJECT:  hepatocyte-segmentation
-  NAME:     psp-effnet-b3 (complete labeled)
+  NAME:     unet-efficientnet-b3
