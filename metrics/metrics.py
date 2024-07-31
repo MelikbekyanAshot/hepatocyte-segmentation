@@ -17,7 +17,7 @@ class Metrics:
 def compute_metrics(output, target, mode: str, num_classes: int, reduction: str = 'macro') -> Metrics:
     target = target.round().long()
     if mode == 'binary':
-        tp, fp, fn, tn = get_stats(output, target, mode=mode, num_classes=num_classes, threshold=0.5)
+        tp, fp, fn, tn = get_stats(output, target, mode=mode, threshold=0.5)
     else:
         tp, fp, fn, tn = get_stats(output, target, mode=mode, num_classes=num_classes)
     iou = iou_score(tp, fp, fn, tn, reduction=reduction).item()
