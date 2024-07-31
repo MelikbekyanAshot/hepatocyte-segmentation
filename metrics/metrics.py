@@ -14,11 +14,14 @@ class Metrics:
         return {f"{mode}/{metric.name}": getattr(self, metric.name) for metric in fields(self)}
 
 
-def compute_metrics(output, target, mode: str, num_classes: int) -> Metrics:
+def compute_metrics(output, target, mode: str, num_classes: int, reduction: str = 'macro') -> Metrics:
     target = target.round().long()
-    tp, fp, fn, tn = get_stats(output, target, mode=mode, num_classes=num_classes)
-    iou = iou_score(tp, fp, fn, tn, reduction="macro").item()
-    f1 = f1_score(tp, fp, fn, tn, reduction="macro").item()
-    precision_score = precision(tp, fp, fn, tn, reduction="macro").item()
-    recall_score = recall(tp, fp, fn, tn, reduction="macro").item()
+    if mode == 'binary':
+        tp, fp, fn, tn = get_stats(output, target, mode=mode, num_classes=num_classes, threshold=0.5)
+    else:
+        tp, fp, fn, tn = get_stats(output, target, mode=mode, num_classes=num_classes)
+    iou = iou_score(tp, fp, fn, tn, reduction=reduction).item()
+    f1 = f1_score(tp, fp, fn, tn, reduction=reduction).item()
+    precision_score = precision(tp, fp, fn, tn, reduction=reduction).item()
+    recall_score = recall(tp, fp, fn, tn, reduction=reduction).item()
     return Metrics(F1=f1, IoU=iou, precision=precision_score, recall=recall_score)
