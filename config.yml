@@ -12,6 +12,10 @@ TRAIN:
     function:         dice  # Available loss functions: dice, cross_entropy, soft_cross_entropy, jaccard, focal
     mode:             multiclass  # Available modes: binary, multiclass. Use for dice, jaccard and focal losses
   OPTIMIZER:          AdamW
+  SCHEDULER:
+    function:         cosine_annealing
+    kwargs:
+      T_max:          10
   LEARNING_RATE:      0.0003
   N_EPOCHS:           5
   BATCH_SIZE:         8

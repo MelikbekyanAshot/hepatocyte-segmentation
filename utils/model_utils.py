@@ -1,13 +1,14 @@
 """
 File contains utility functions to create model.
 """
-from typing import Optional
+from typing import Optional, Type
 
 import torch
 from segmentation_models_pytorch import Unet, UnetPlusPlus, MAnet, Linknet, FPN, PSPNet, PAN, DeepLabV3, DeepLabV3Plus
 from segmentation_models_pytorch.base import SegmentationModel
 from segmentation_models_pytorch.losses import DiceLoss, SoftCrossEntropyLoss, JaccardLoss, FocalLoss
 from torch.optim import Adam, AdamW
+from torch.optim.lr_scheduler import LRScheduler, CosineAnnealingLR, StepLR, ExponentialLR
 
 
 def get_model(architecture: str, encoder_name: str, encoder_weights: Optional[str] = None, output_classes: int = 1) \
@@ -73,6 +74,16 @@ def get_optimizer(name: str):
     if optimizer is None:
         raise KeyError(f'Optimizer {name} is not found!')
     return optimizer
+
+
+def get_scheduler(name: str) -> Optional[Type[LRScheduler]]:
+    schedulers = {
+        'cosine_annealing': CosineAnnealingLR,
+        'step': StepLR,
+        'exponential': ExponentialLR
+    }
+    scheduler = schedulers.get(name, None)
+    return scheduler
 
 
 def save_model(model: SegmentationModel):

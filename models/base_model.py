@@ -177,5 +177,8 @@ class SegmentationModel(LightningModule):
     def configure_optimizers(self):
         optimizer = self.optimizer(
             self.model.parameters(),
-            lr=LR_CONFIG)
+            lr=self.config['TRAIN']['LEARNING_RATE'])
+        if self.scheduler:
+            scheduler = self.scheduler(optimizer, **self.config['TRAIN']['SCHEDULER']['kwargs'])
+            return {'optimizer': optimizer, 'lr_scheduler': scheduler}
         return optimizer
