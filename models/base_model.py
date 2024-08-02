@@ -1,29 +1,25 @@
+from typing import Dict
+
 import numpy as np
 import wandb
 from pytorch_lightning import LightningModule
 
 from metrics.metrics import compute_metrics
-from utils.data_utils import get_config
-from utils.model_utils import get_model, get_loss, get_optimizer
-
-CONFIG = get_config()
-TRAIN_CONFIG = CONFIG['TRAIN']
-MODEL_CONFIG = TRAIN_CONFIG['MODEL']
-OUTPUT_CLASSES = MODEL_CONFIG['output_classes']
-LOSS_CONFIG = TRAIN_CONFIG['LOSS']
-MODE = LOSS_CONFIG['mode']
-OPT_CONFIG = TRAIN_CONFIG['OPTIMIZER']
-LR_CONFIG = TRAIN_CONFIG['LEARNING_RATE']
-WANDB_CONFIG = CONFIG['WANDB']
+from utils.model_utils import get_model, get_loss, get_optimizer, get_scheduler
 
 
 class SegmentationModel(LightningModule):
     """Class for segmentation model's training."""
-    def __init__(self):
+    def __init__(
+            self,
+            config: Dict
+    ):
         super().__init__()
-        self.model = get_model(**MODEL_CONFIG)
-        self.loss_fn = get_loss(**LOSS_CONFIG)
-        self.optimizer = get_optimizer(OPT_CONFIG)
+        self.config = config
+        self.model = get_model(**config['TRAIN']['MODEL'])
+        self.loss_fn = get_loss(**config['TRAIN']['LOSS'])
+        self.scheduler = get_scheduler(name=config['TRAIN']['SCHEDULER']['function'])
+        self.optimizer = get_optimizer(name=config['TRAIN']['OPTIMIZER'])
         self.test_table = None
         self.train_history = {
             'loss': [], 'f1_score': [], 'iou': [],
@@ -52,7 +48,11 @@ class SegmentationModel(LightningModule):
         loss = self.loss_fn(logits_mask, mask)
         prob_mask = logits_mask.sigmoid()
         pred_mask = prob_mask.argmax(dim=1, keepdim=True)
-        metrics = compute_metrics(pred_mask, mask, mode=MODE, num_classes=OUTPUT_CLASSES)
+        metrics = compute_metrics(
+            pred_mask, mask,
+            mode=self.config['TRAIN']['LOSS']['mode'],
+            num_classes=self.config['TRAIN']['MODEL']['output_classes']
+        )
         self.log_batch_results(loss.item(), metrics, mode='Train')
         return loss
 
@@ -73,7 +73,11 @@ class SegmentationModel(LightningModule):
         loss = self.loss_fn(logits_mask, mask)
         prob_mask = logits_mask.sigmoid()
         pred_mask = prob_mask.argmax(dim=1, keepdim=True)
-        metrics = compute_metrics(pred_mask, mask, mode=MODE, num_classes=OUTPUT_CLASSES)
+        metrics = compute_metrics(
+            pred_mask, mask,
+            mode=self.config['LOSS']['mode'],
+            num_classes=self.config['TRAIN']['MODEL']['output_classes']
+        )
         self.log_batch_results(loss.item(), metrics, mode='Val')
 
     def on_validation_epoch_end(self) -> None:
@@ -96,7 +100,11 @@ class SegmentationModel(LightningModule):
         loss = self.loss_fn(logits_mask, mask)
         prob_mask = logits_mask.sigmoid()
         pred_mask = prob_mask.argmax(dim=1, keepdim=True)
-        metrics = compute_metrics(pred_mask, mask, mode=MODE, num_classes=OUTPUT_CLASSES)
+        metrics = compute_metrics(
+            pred_mask, mask,
+            mode=self.config['TRAIN']['LOSS']['mode'],
+            num_classes=self.config['TRAIN']['MODEL']['output_classes']
+        )
         self.log_batch_results(loss.item(), metrics, mode='Test')
         self.test_gt_labels.extend(mask.ravel().cpu().numpy())
         self.test_pred_labels.extend(pred_mask.ravel().cpu().numpy())
@@ -104,7 +112,7 @@ class SegmentationModel(LightningModule):
 
     def __add_images_to_table(self, images, masks, preds):
         class_set = wandb.Classes(
-            [{'name': cls_name, 'id': idx} for idx, cls_name in WANDB_CONFIG['IDX2LABEL'].items()])
+            [{'name': cls_name, 'id': idx} for idx, cls_name in self.config['WANDB']['IDX2LABEL'].items()])
         for image, mask, pred in zip(images, masks, preds):
             image = image.permute(1, 2, 0).detach().cpu().numpy()
             mask = mask.detach().cpu().numpy().squeeze()
@@ -114,10 +122,10 @@ class SegmentationModel(LightningModule):
                 masks={
                     'predictions': {
                         'mask_data': pred,
-                        'class_labels': WANDB_CONFIG['IDX2LABEL']},
+                        'class_labels': self.config['WANDB']['IDX2LABEL']},
                     'ground_truth': {
                         'mask_data': mask,
-                        'class_labels': WANDB_CONFIG['IDX2LABEL']}},
+                        'class_labels': self.config['WANDB']['IDX2LABEL']}},
                 classes=class_set)
             self.test_table.add_data(masked_image)
 
@@ -126,8 +134,8 @@ class SegmentationModel(LightningModule):
             mode='Test', loss=self.test_history['loss'],
             f1_score=self.test_history['f1_score'], iou=self.test_history['iou'])
 
-        wandb.log({f"Gallery/{WANDB_CONFIG['NAME'] or self.model.name}": self.test_table})
-        class_names = [label.replace('hepatocyte_', '') for label in WANDB_CONFIG['IDX2LABEL'].values()]
+        wandb.log({f"Gallery/{self.config['WANDB']['NAME'] or self.model.name}": self.test_table})
+        class_names = [label.replace('hepatocyte_', '') for label in self.config['WANDB']['IDX2LABEL'].values()]
         wandb.log({
             'conf_matrix': wandb.plot.confusion_matrix(
                 probs=None, y_true=self.test_gt_labels, preds=self.test_pred_labels,

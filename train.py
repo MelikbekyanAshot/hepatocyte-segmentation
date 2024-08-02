@@ -1,53 +1,44 @@
 import os
-import random
-import time
 
 import torch.jit
 from loguru import logger
 from pytorch_lightning import Trainer, seed_everything
-from torchinfo import summary
+import albumentations as A
 
 import wandb
 from models.base_model import SegmentationModel
-from utils.data_utils import get_config, get_dataloaders_from_patches, get_dataloaders_from_folders
+from utils.data_utils import get_config, get_dataloaders_from_folders
 
 seed_everything(42, workers=True)
 
 
 if __name__ == '__main__':
+    # Build dataloaders
     config = get_config()
     train_config = config['TRAIN']
     root = config['PATH']['ROOT']
     patches = config['PATH']['PATCHES']
     folders = set(os.listdir(root))
-    val_folders = random.sample(folders, 3)
-    test_folders = random.sample(folders.difference(val_folders), 2)
-    train_folders = folders.difference(val_folders).difference(test_folders)
+    train_folders = ['7939_20_310320201319_7', '7939_20_310320201319_16']
+    val_folders = ['7939_20_310320201319_3']
+    test_folders = ['7939_20_310320201319_4']
+    transforms = A.Compose([
+        A.Flip(),
+        A.RandomRotate90(p=0.5),
+        A.Transpose(p=0.5),
+    ])
     train_dl, val_dl, test_dl = get_dataloaders_from_folders(
         train_folders=list(train_folders),
         val_folders=list(val_folders),
         test_folders=list(test_folders),
         root_path=root,
         patches_path=patches,
-        batch_size=train_config['BATCH_SIZE']
+        batch_size=train_config['BATCH_SIZE'],
+        train_transforms=transforms
     )
 
-    seg_model = SegmentationModel()
-    wandb_config = config['WANDB']
-    wandb.login()
-    wandb.init(
-        project=wandb_config['PROJECT'],
-        name=wandb_config['NAME'] or f"{seg_model.model.name} ({time.asctime()})",
-        config={
-            **train_config['MODEL'],
-            **train_config['LOSS'],
-            'trainable_params': summary(seg_model.model).trainable_params,
-            'optimizer': train_config['OPTIMIZER'],
-            'lr': train_config['LEARNING_RATE'],
-            'n_epochs': train_config['N_EPOCHS'],
-            'batch_size': train_config['BATCH_SIZE'],
-        }
-    )
+    # Train and validate model
+    seg_model = SegmentationModel(config)
     trainer = Trainer(
         max_epochs=train_config['N_EPOCHS'],
         accumulate_grad_batches=4,
@@ -64,7 +55,7 @@ if __name__ == '__main__':
 
     # Save jit weights
     try:
-        jit_weights_file_name = f"{wandb_config['NAME']}_scripted.pth"
+        jit_weights_file_name = f"{config['WANDB']['NAME']}_scripted.pth"
         dummy_input = torch.randn(
             train_config['BATCH_SIZE'], 3,
             train_config['PATCH_SIZE'], train_config['PATCH_SIZE'])
@@ -77,7 +68,7 @@ if __name__ == '__main__':
 
     # Save state dict
     try:
-        state_dict_weights = f"{wandb_config['NAME']}_state_dict.pth"
+        state_dict_weights = f"{config['WANDB']['NAME']}_state_dict.pth"
         torch.save(seg_model.state_dict(), state_dict_weights)
         wandb.save(state_dict_weights)
     except:
