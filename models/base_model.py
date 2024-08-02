@@ -77,7 +77,7 @@ class SegmentationModel(LightningModule):
         pred_mask = prob_mask.argmax(dim=1, keepdim=True)
         metrics = compute_metrics(
             pred_mask, mask,
-            mode=self.config['LOSS']['mode'],
+            mode=self.config['TRAIN']['LOSS']['mode'],
             num_classes=self.config['TRAIN']['MODEL']['output_classes']
         )
         self.log_batch_results(loss.item(), metrics, mode='Val')
