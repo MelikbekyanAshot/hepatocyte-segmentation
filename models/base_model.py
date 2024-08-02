@@ -59,7 +59,9 @@ class SegmentationModel(LightningModule):
     def on_train_epoch_end(self) -> None:
         self.__log_epoch_mean_metrics(
             mode='Train', loss=self.train_history['loss'],
-            f1_score=self.train_history['f1_score'], iou=self.train_history['iou'])
+            f1_score=self.train_history['f1_score'], iou=self.train_history['iou'],
+            precision=self.train_history['precision'], recall=self.train_history['recall']
+        )
 
     def on_validation_epoch_start(self) -> None:
         self.val_history = {
@@ -83,7 +85,9 @@ class SegmentationModel(LightningModule):
     def on_validation_epoch_end(self) -> None:
         self.__log_epoch_mean_metrics(
             mode='Val', loss=self.val_history['loss'],
-            f1_score=self.val_history['f1_score'], iou=self.val_history['iou'])
+            f1_score=self.val_history['f1_score'], iou=self.val_history['iou'],
+            precision=self.val_history['precision'], recall=self.val_history['recall']
+        )
 
     def on_test_epoch_start(self) -> None:
         self.test_table = wandb.Table(columns=['sample'])
@@ -132,7 +136,9 @@ class SegmentationModel(LightningModule):
     def on_test_epoch_end(self) -> None:
         self.__log_epoch_mean_metrics(
             mode='Test', loss=self.test_history['loss'],
-            f1_score=self.test_history['f1_score'], iou=self.test_history['iou'])
+            f1_score=self.test_history['f1_score'], iou=self.test_history['iou'],
+            precision=self.test_history['precision'], recall=self.test_history['recall']
+        )
 
         wandb.log({f"Gallery/{self.config['WANDB']['NAME'] or self.model.name}": self.test_table})
         class_names = [label.replace('hepatocyte_', '') for label in self.config['WANDB']['IDX2LABEL'].values()]
@@ -143,14 +149,18 @@ class SegmentationModel(LightningModule):
             )
         })
 
-    def __log_epoch_mean_metrics(self, mode: str, loss, f1_score, iou):
+    def __log_epoch_mean_metrics(self, mode: str, loss, f1_score, iou, precision, recall):
         mean_loss = np.mean(loss)
         mean_f1 = np.mean(f1_score)
         mean_iou = np.mean(iou)
+        mean_precision = np.mean(precision)
+        mean_recall = np.mean(recall)
         wandb.log({
             f'{mode}/EpochLoss': mean_loss,
             f'{mode}/EpochF1': mean_f1,
             f'{mode}/EpochIoU': mean_iou,
+            f'{mode}/EpochPrecision': mean_precision,
+            f'{mode}/EpochRecall': mean_recall,
             'epoch': self.current_epoch}
         )
 
