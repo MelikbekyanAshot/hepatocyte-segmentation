@@ -29,6 +29,8 @@ class FullImageDataset(Dataset):
 
     def __getitem__(self, idx):
         img, mask = Image.open(self.image_paths[idx]), Image.open(self.mask_paths[idx])  # [10K, 10K], [10K, 10K]
+        img = img.resize((8192, 8192))
+        mask = mask.resize((8192, 8192))
         img, mask = np.array(img), np.array(mask)  # [10K, 10K, 3], [10K, 10K]
         img, mask = self.__crop(img, mask)  # [<10K, <10K, 3], [<10K, <10K]
         mask = self.__replace_values(mask, idx)  # [<10K, <10K, 3], [<10K, <10K]
