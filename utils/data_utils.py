@@ -2,11 +2,10 @@
 File contains utility functions to get dataloaders and config file.
 """
 import os
-import random
 from typing import Tuple, Dict, List
 
+import albumentations as A
 import yaml
-from albumentations import Compose, VerticalFlip, HorizontalFlip, RandomRotate90, Transpose
 from loguru import logger
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
@@ -31,16 +30,17 @@ def dump_config(config: Dict, path: str):
 
 def get_dataloaders_from_folders(
         train_folders: List[str], val_folders: List[str], test_folders: List[str],
-        root_path: str, patches_path: str, batch_size: int) \
+        root_path: str, patches_path: str, batch_size: int, train_transforms: A.Compose) \
         -> Tuple[DataLoader, DataLoader, DataLoader]:
     """Split image-mask patches into 2 groups: train and val.
     Data directories structure:
-        sample_number:
-            full_sample - contains full sized image, mask and txt file with presented labels.
-            json - json file with labels.
-            patches:
-                images - image tiles.
-                masks - mask tiles.
+        root_dir:
+            code_number:
+                full_sample - contains full sized image, mask and txt file with presented labels.
+                json - json file with labels.
+                patches:
+                    images - image tiles.
+                    masks - mask tiles.
 
     Args:
         train_folders (List[str]) - paths to folders for train.
@@ -49,8 +49,13 @@ def get_dataloaders_from_folders(
         root_path (str) - path to directory with data.
         patches_path (str) - name of directory with patches (for experiments purpose).
         batch_size (int) - number of samples in batch.
-        val_size (float) - percent of samples for validation.
+        train_transforms (A.Compose) - augmentations for train dataloader.
+
+    Returns:
+        train_dataloader, val_dataloader, test_dataloader (DataLoader, DataLoader, DataLoader) - dataloaders.
     """
+    num_workers = 0 if os.name == 'nt' else os.cpu_count() - 1  # set 0 for Windows
+
     train_img_patches, train_mask_patches = [], []
     for folder in train_folders:
         image_dir = os.path.join(root_path, folder, patches_path, 'images')
@@ -61,6 +66,11 @@ def get_dataloaders_from_folders(
             train_mask_patches.append(os.path.join(mask_dir, patch_path))
     train_img_patches = sorted(train_img_patches)
     train_mask_patches = sorted(train_mask_patches)
+    train_patch_ds = PatchDataset(
+        image_paths=train_img_patches, label_paths=train_mask_patches, transform=train_transforms)
+    train_dataloader = DataLoader(
+        train_patch_ds, batch_size=batch_size, shuffle=True,
+        num_workers=num_workers, drop_last=True)
 
     val_img_patches, val_mask_patches = [], []
     for folder in val_folders:
@@ -72,6 +82,11 @@ def get_dataloaders_from_folders(
             val_mask_patches.append(os.path.join(mask_dir, patch_path))
     val_img_patches = sorted(val_img_patches)
     val_mask_patches = sorted(val_mask_patches)
+    val_patch_ds = PatchDataset(
+        image_paths=val_img_patches, label_paths=val_mask_patches)
+    val_dataloader = DataLoader(
+        val_patch_ds, batch_size=batch_size, shuffle=False,
+        num_workers=num_workers, drop_last=True)
 
     test_img_patches, test_mask_patches = [], []
     for folder in test_folders:
@@ -83,69 +98,47 @@ def get_dataloaders_from_folders(
             test_mask_patches.append(os.path.join(mask_dir, patch_path))
     test_img_patches = sorted(test_img_patches)
     test_mask_patches = sorted(test_mask_patches)
-
-    transforms = Compose([
-        VerticalFlip(p=0.5),
-        HorizontalFlip(p=0.5),
-        RandomRotate90(p=0.5),
-        Transpose(p=0.5)
-    ])
-    train_patch_ds = PatchDataset(
-        image_paths=train_img_patches, label_paths=train_mask_patches, transform=transforms)
-    val_patch_ds = PatchDataset(
-        image_paths=val_img_patches, label_paths=val_mask_patches)
     test_patch_ds = PatchDataset(
         image_paths=test_img_patches, label_paths=test_mask_patches)
-    logger.info(f"\nTrain samples: {len(train_patch_ds)}"
-                f"\nVal samples: {len(val_patch_ds)}"
-                f"\nTest samples: {len(test_patch_ds)}")
-    num_workers = 0 if os.name == 'nt' else os.cpu_count() - 1  # set 0 for Windows
-    train_dataloader = DataLoader(
-        train_patch_ds, batch_size=batch_size, shuffle=True,
-        num_workers=num_workers, drop_last=True)
-    val_dataloader = DataLoader(
-        val_patch_ds, batch_size=batch_size, shuffle=False,
-        num_workers=num_workers, drop_last=True)
     test_dataloader = DataLoader(
         test_patch_ds, batch_size=batch_size, shuffle=False,
         num_workers=num_workers, drop_last=True)
+
+    logger.info(f"\nTrain samples: {len(train_patch_ds)}"
+                f"\nVal samples: {len(val_patch_ds)}"
+                f"\nTest samples: {len(test_patch_ds)}")
+
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def get_dataloaders_from_patches(images: List[str], masks: List[str], batch_size: int, test_size: float = 0.2) \
-        -> Tuple[DataLoader, DataLoader]:
-    train_images, val_images, train_masks, val_masks = \
-        train_test_split(images, masks, test_size=test_size)
-    transforms = Compose([
-        VerticalFlip(p=0.5),
-        HorizontalFlip(p=0.5),
-        RandomRotate90(p=0.5),
-        Transpose(p=0.5)
-    ])
-    train_patch_ds = PatchDataset(image_paths=train_images, label_paths=train_masks, transform=transforms)
-    val_patch_ds = PatchDataset(image_paths=val_images, label_paths=val_masks)
-    logger.info(
-        f"\nTrain samples: {len(train_patch_ds)}"
-        f"\nVal samples: {len(val_patch_ds)}"
-    )
-    num_workers = 0 if os.name == 'nt' else os.cpu_count() - 1  # set 0 for Windows
-    train_dataloader = DataLoader(
-        train_patch_ds, batch_size=batch_size, shuffle=True,
-        num_workers=num_workers, drop_last=True)
-    val_dataloader = DataLoader(
-        val_patch_ds, batch_size=batch_size, shuffle=False,
-        num_workers=num_workers, drop_last=True)
-    return train_dataloader, val_dataloader
-
-
 if __name__ == '__main__':
-    root = 'D:\\Hepatocyte'
-    folders = os.listdir(root)
-    test_folders = random.sample(folders, 3)
-    data_loader, *_ = get_dataloaders(
-        root_path=root, train_val_folders=set(folders).difference(test_folders), test_folders=test_folders,
-        patches_path='patches_st_norm_nn_mc',
-        batch_size=4, val_size=0.1)
+    root = 'D:\\Hepatocyte_full'
+    folders = set(os.listdir(root))
+    train_folders = ['7939_20_310320201319_7', '7939_20_310320201319_16']
+    val_folders = ['7939_20_310320201319_4']
+    test_folders = ['7939_20_310320201319_3']
+
+    transforms = A.Compose([
+        A.RGBShift(),
+        A.Blur(),
+        A.GaussNoise(),
+        A.Flip(),
+        A.RandomRotate90(p=0.5),
+        A.Transpose(p=0.5),
+        A.RandomSizedCrop(min_max_height=(512 - 100, 512 + 100), width=256, height=256, p=0.5)
+    ])
+
+    train_dl, val_dl, test_dl = get_dataloaders_from_folders(
+        train_folders=list(train_folders),
+        val_folders=list(val_folders),
+        test_folders=list(test_folders),
+        root_path=root,
+        patches_path='patches',
+        batch_size=4,
+        train_transforms=transforms
+    )
+
+    iterator = iter(val_dl)
     while True:
-        batch = next(iter(data_loader))
+        batch = next(iterator)
         plot_batch(batch)
