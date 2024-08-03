@@ -11,6 +11,8 @@ TRAIN:
   LOSS:
     function:         dice  # Available loss functions: dice, cross_entropy, soft_cross_entropy, jaccard, focal
     mode:             multiclass  # Available modes: binary, multiclass. Use for dice, jaccard and focal losses
+  METRICS:
+    reduction:        macro
   OPTIMIZER:          AdamW
   SCHEDULER:
     function:         cosine_annealing

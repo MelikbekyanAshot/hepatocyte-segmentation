@@ -51,7 +51,8 @@ class SegmentationModel(LightningModule):
         metrics = compute_metrics(
             pred_mask, mask,
             mode=self.config['TRAIN']['LOSS']['mode'],
-            num_classes=self.config['TRAIN']['MODEL']['output_classes']
+            num_classes=self.config['TRAIN']['MODEL']['output_classes'],
+            reduction=self.config['TRAIN']['METRICS']['reduction']
         )
         self.log_batch_results(loss.item(), metrics, mode='Train')
         return loss
