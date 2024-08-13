@@ -17,7 +17,10 @@ class SegmentationModel(LightningModule):
         super().__init__()
         self.config = config
         self.model = get_model(**config['TRAIN']['MODEL'])
-        self.loss_fn = get_loss(**config['TRAIN']['LOSS'])
+        self.loss_fn = get_loss(
+            function=config['TRAIN']['LOSS']['function'],
+            kwargs=config['TRAIN']['LOSS']['kwargs']
+        )
         self.scheduler = get_scheduler(name=config['TRAIN']['SCHEDULER']['function'])
         self.optimizer = get_optimizer(name=config['TRAIN']['OPTIMIZER'])
         self.test_table = None
