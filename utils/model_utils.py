@@ -1,12 +1,12 @@
 """
 File contains utility functions to create model.
 """
-from typing import Optional, Type
+from typing import Optional, Type, Dict
 
 import torch
 from segmentation_models_pytorch import Unet, UnetPlusPlus, MAnet, Linknet, FPN, PSPNet, PAN, DeepLabV3, DeepLabV3Plus
 from segmentation_models_pytorch.base import SegmentationModel
-from segmentation_models_pytorch.losses import DiceLoss, SoftCrossEntropyLoss, JaccardLoss, FocalLoss
+from segmentation_models_pytorch.losses import DiceLoss, SoftCrossEntropyLoss, JaccardLoss, FocalLoss, TverskyLoss
 from torch.optim import Adam, AdamW
 from torch.optim.lr_scheduler import LRScheduler, CosineAnnealingLR, StepLR, ExponentialLR
 
@@ -52,17 +52,18 @@ def get_model(architecture: str, encoder_name: str, encoder_weights: Optional[st
     return model(**kwargs)
 
 
-def get_loss(function: str, mode: str):
+def get_loss(function: str, kwargs: Dict):
     loss_mapping = {
-        'dice': DiceLoss(mode=mode, from_logits=True),
-        'soft_cse': SoftCrossEntropyLoss(),
-        'jaccard': JaccardLoss(mode=mode, from_logits=True),
-        'focal': FocalLoss(mode=mode)
+        'dice': DiceLoss,
+        'soft_cse': SoftCrossEntropyLoss,
+        'jaccard': JaccardLoss,
+        'focal': FocalLoss,
+        'tversky': TverskyLoss
     }
     loss_fn = loss_mapping.get(function, None)
     if loss_fn is None:
         raise KeyError(f'Loss function {function} is not found!')
-    return loss_fn
+    return loss_fn(**kwargs)
 
 
 def get_optimizer(name: str):

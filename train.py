@@ -4,6 +4,7 @@ import torch.jit
 from loguru import logger
 from pytorch_lightning import Trainer, seed_everything
 import albumentations as A
+from torchinfo import summary
 
 import wandb
 from models.base_model import SegmentationModel
@@ -39,8 +40,24 @@ if __name__ == '__main__':
 
     # Train and validate model
     seg_model = SegmentationModel(config)
+    wandb.login()
+    wandb.init(
+        project='hepatocyte-segmentation',
+        name=f"test-{config['TRAIN']['MODEL']['architecture']}-{config['TRAIN']['MODEL']['encoder_name']}",
+        config={
+            **config['TRAIN']['MODEL'],
+            'function': config['TRAIN']['LOSS']['function'],
+            **config['TRAIN']['LOSS']['kwargs'],
+            'trainable_params': summary(seg_model.model).trainable_params,
+            'optimizer': config['TRAIN']['OPTIMIZER'],
+            'lr': config['TRAIN']['LEARNING_RATE'],
+            'n_epochs': config['TRAIN']['N_EPOCHS'],
+            'batch_size': config['TRAIN']['BATCH_SIZE'],
+        }
+    )
     trainer = Trainer(
         max_epochs=train_config['N_EPOCHS'],
+        fast_dev_run=True,
         accumulate_grad_batches=4,
     )
     trainer.fit(
