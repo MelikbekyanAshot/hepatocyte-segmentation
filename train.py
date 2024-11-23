@@ -44,7 +44,7 @@ if __name__ == '__main__':
     wandb.login()
     wandb.init(
         project='hepatocyte-segmentation',
-        name='test-from-local',  #f"{config['TRAIN']['MODEL']['architecture']}",
+        name=f"{config['TRAIN']['MODEL']['architecture']}",
         config={
             'architecture': config['TRAIN']['MODEL']['architecture'],
             **config['TRAIN']['MODEL']['kwargs'],
