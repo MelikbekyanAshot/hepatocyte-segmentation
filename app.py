@@ -1,17 +1,17 @@
 """Web application."""
+import time
 from io import BytesIO
 
-import numpy as np
-from scipy import ndimage
 import streamlit as st
-from streamlit_image_zoom import image_zoom
 import torch
 from PIL import Image
+from scipy import ndimage
+from streamlit_image_zoom import image_zoom
 
-from utils.app_utils import IDX2LABEL, colorify_mask, blend_image_mask, pil_to_pt, segment_image, extract_layer
+from utils.app_utils import IDX2LABEL, colorify_mask, blend_image_mask, pil_to_pt, segment_image, extract_layer, \
+    generate_color_circle, ID2COLOR
 
 st.set_page_config(page_title='Hepatocyte.ai', layout='wide')
-
 
 @st.cache_resource
 def load_model():
@@ -30,14 +30,13 @@ with st.container():
     with image_load_column:
         image_buffer = st.file_uploader(label='Загрузите изображение', type='png', on_change=clear_st_session())
 
-
 with st.container():
     if image_buffer:
         pil_image = Image.open(image_buffer)
         pt_image = pil_to_pt(pil_image)
         mask = segment_image(model, pt_image)
 
-        _, column_image, column_stats, _ = st.columns([0.1, 0.4, 0.4, 0.1], gap='large')
+        column_image, column_stats, _ = st.columns([0.5, 0.4, 0.1], gap='large')
         with column_image:
             if 'colored_mask' not in st.session_state:
                 colored_mask = colorify_mask(mask)
@@ -52,14 +51,19 @@ with st.container():
                 image_zoom(pil_image, mode='scroll')
             res_byte = BytesIO()
             image_with_mask.save(res_byte, format='PNG')
-            _, download_button_column, new_load_column, _ = st.columns([0.1, 0.4, 0.4, 0.1], vertical_alignment='center')
+            _, download_button_column, new_load_column, _ = st.columns([0.1, 0.4, 0.4, 0.1],
+                                                                       vertical_alignment='center')
             with download_button_column:
                 st.download_button('Скачать', res_byte, file_name='res.png', use_container_width=True)
 
         with column_stats:
             st.header('Морфометрия')
-            labels = np.unique(mask)[1:]
-            for label in labels:
-                label_mask = extract_layer(mask, label)
+            labels = list(IDX2LABEL.items())[1:]
+            for idx, name in list(IDX2LABEL.items())[1:]:
+                label_mask = extract_layer(mask, idx)
                 _, num_labels = ndimage.label(label_mask)
-                st.write(f'{IDX2LABEL.get(label)}:', num_labels)
+                c1, c2 = st.columns([0.05, 0.95], vertical_alignment='bottom')
+                with c1:
+                    st.html(generate_color_circle(ID2COLOR[idx].name.lower()))
+                with c2:
+                    st.write(f'{name}:', num_labels)

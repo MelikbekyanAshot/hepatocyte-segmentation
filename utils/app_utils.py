@@ -1,5 +1,6 @@
 """Utility components for web application."""
 from enum import Enum
+from functools import lru_cache
 
 import numpy as np
 import torch
@@ -7,6 +8,7 @@ from PIL import Image
 
 
 class Color(Enum):
+    TRANSPARENT = (0, 0, 0, 0)
     RED = (255, 0, 0, 128)
     GREEN = (0, 255, 0, 128)
     BLUE = (0, 0, 255, 128)
@@ -26,23 +28,23 @@ IDX2LABEL = {
 }
 
 
+ID2COLOR = {
+    0: Color.TRANSPARENT,
+    1: Color.RED,
+    2: Color.GREEN,
+    3: Color.BLUE,
+    4: Color.YELLOW,
+    5: Color.PURPLE,
+    6: Color.ORANGE
+}
+
+
 def colorify_mask(grayscale_mask: np.array):
     """Convert grayscale mask with 0...N values to specific colors."""
     color_mask = Image.new('RGBA', (512, 512))
     for x in range(grayscale_mask.shape[0]):
         for y in range(grayscale_mask.shape[1]):
-            if grayscale_mask[x, y] == 1:
-                color_mask.putpixel((y, x), Color.RED.value)
-            elif grayscale_mask[x, y] == 2:
-                color_mask.putpixel((y, x), Color.GREEN.value)
-            elif grayscale_mask[x, y] == 3:
-                color_mask.putpixel((y, x), Color.BLUE.value)
-            elif grayscale_mask[x, y] == 4:
-                color_mask.putpixel((y, x), Color.YELLOW.value)
-            elif grayscale_mask[x, y] == 5:
-                color_mask.putpixel((y, x), Color.PURPLE.value)
-            elif grayscale_mask[x, y] == 6:
-                color_mask.putpixel((y, x), Color.ORANGE.value)
+            color_mask.putpixel((y, x), ID2COLOR[grayscale_mask[x, y]].value)
     return color_mask
 
 
@@ -62,6 +64,7 @@ def pil_to_pt(image: Image) -> torch.Tensor:
     return tensor_image
 
 
+@lru_cache(maxsize=1)
 def segment_image(model: torch.nn.Module, image: torch.Tensor):
     predict = model(image) \
         .argmax(dim=1) \
@@ -77,3 +80,46 @@ def extract_layer(matrix, label):
     res_matrix = np.zeros_like(matrix)
     res_matrix[layer_mask] = matrix[layer_mask]
     return res_matrix
+
+
+def generate_color_circle(color):
+    html_code = f"""
+<head>
+    <style>
+        .red-circle {{
+            padding: 2px 11px;
+            border-radius: 100%;
+            background-color: #ff0000;
+        }}
+        .green-circle {{
+            padding: 2px 11px;
+            border-radius: 100%;
+            background-color: #00ff00;
+        }}
+        .blue-circle {{
+            padding: 2px 11px;
+            border-radius: 100%;
+            background-color: #0000ff;
+        }}
+        .yellow-circle {{
+            padding: 2px 11px;
+            border-radius: 100%;
+            background-color: #ffff00;
+        }}
+        .purple-circle {{
+            padding: 2px 11px;
+            border-radius: 100%;
+            background-color: #800080;
+        }}
+        .orange-circle {{
+            padding: 2px 11px;
+            border-radius: 100%;
+            background-color: #ffa500;
+        }}
+    </style>
+</head>
+<body>
+    <span class="{color}-circle"></span>
+</body>
+</html>"""
+    return html_code
