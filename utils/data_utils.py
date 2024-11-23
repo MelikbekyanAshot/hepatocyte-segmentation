@@ -2,12 +2,11 @@
 File contains utility functions to get dataloaders and config file.
 """
 import os
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Optional
 
 import albumentations as A
 import yaml
 from loguru import logger
-from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 from yaml import SafeLoader
 
@@ -30,7 +29,7 @@ def dump_config(config: Dict, path: str):
 
 def get_dataloaders_from_folders(
         train_folders: List[str], val_folders: List[str], test_folders: List[str],
-        root_path: str, patches_path: str, batch_size: int, train_transforms: A.Compose) \
+        root_path: str, patches_path: str, batch_size: int, train_transforms: Optional[A.Compose]) \
         -> Tuple[DataLoader, DataLoader, DataLoader]:
     """Split image-mask patches into 2 groups: train and val.
     Data directories structure:

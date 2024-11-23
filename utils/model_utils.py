@@ -10,16 +10,14 @@ from segmentation_models_pytorch.losses import DiceLoss, SoftCrossEntropyLoss, J
 from torch.optim import Adam, AdamW
 from torch.optim.lr_scheduler import LRScheduler, CosineAnnealingLR, StepLR, ExponentialLR
 
+from utils.custom_losses import GeneralizedDiceLoss
 
-def get_model(architecture: str, encoder_name: str, encoder_weights: Optional[str] = None, output_classes: int = 1) \
-        -> torch.nn.Module:
+
+def get_model(architecture: str, **kwargs: Dict) -> torch.nn.Module:
     """Build segmentation model from segmentation-models-pytorch package.
 
     Args:
         architecture (str) - neural network type.
-        encoder_name (str) - classification model that will be used as encoder to extract features from image.
-        encoder_weights (Optional[str]) - pretrained weights, None for random initialization.
-        output_classes (int) - number of classes to segment, including background.
 
     Returns:
         model (torch.nn.Module) - neural network for segmentation.
@@ -29,11 +27,6 @@ def get_model(architecture: str, encoder_name: str, encoder_weights: Optional[st
          KeyError: if architecture with given backbone is not supported.
          KeyError: if backbone with given encoder_weights is not supported.
     """
-    kwargs = {
-        'encoder_name': encoder_name,
-        'encoder_weights': encoder_weights,
-        'classes': output_classes
-    }
     model_mapping = {
         'unet': Unet,
         'unet++': UnetPlusPlus,
@@ -55,6 +48,7 @@ def get_model(architecture: str, encoder_name: str, encoder_weights: Optional[st
 def get_loss(function: str, kwargs: Dict):
     loss_mapping = {
         'dice': DiceLoss,
+        'gen_dice': GeneralizedDiceLoss,
         'soft_cse': SoftCrossEntropyLoss,
         'jaccard': JaccardLoss,
         'focal': FocalLoss,
@@ -63,6 +57,10 @@ def get_loss(function: str, kwargs: Dict):
     loss_fn = loss_mapping.get(function, None)
     if loss_fn is None:
         raise KeyError(f'Loss function {function} is not found!')
+    if function == 'gen_dice':
+        return loss_fn()
+    if function == 'tversky':
+        return TverskyLoss(mode=kwargs.get('mode'), alpha=kwargs.get('alpha'), beta=kwargs.get('beta'))
     return loss_fn(**kwargs)
 
 

@@ -16,7 +16,9 @@ class SegmentationModel(LightningModule):
     ):
         super().__init__()
         self.config = config
-        self.model = get_model(**config['TRAIN']['MODEL'])
+        self.model = get_model(
+            architecture=config['TRAIN']['MODEL']['architecture'],
+            **config['TRAIN']['MODEL']['kwargs'])
         self.loss_fn = get_loss(
             function=config['TRAIN']['LOSS']['function'],
             kwargs=config['TRAIN']['LOSS']['kwargs']
@@ -54,7 +56,7 @@ class SegmentationModel(LightningModule):
         metrics = compute_metrics(
             pred_mask, mask,
             mode=self.config['TRAIN']['LOSS']['kwargs']['mode'],
-            num_classes=self.config['TRAIN']['MODEL']['output_classes'],
+            num_classes=self.config['TRAIN']['MODEL']['kwargs']['classes'],
             reduction=self.config['TRAIN']['METRICS']['reduction']
         )
         self.log_batch_results(loss.item(), metrics, mode='Train')
@@ -82,7 +84,7 @@ class SegmentationModel(LightningModule):
         metrics = compute_metrics(
             pred_mask, mask,
             mode=self.config['TRAIN']['LOSS']['kwargs']['mode'],
-            num_classes=self.config['TRAIN']['MODEL']['output_classes']
+            num_classes=self.config['TRAIN']['MODEL']['kwargs']['classes']
         )
         self.log_batch_results(loss.item(), metrics, mode='Val')
 
@@ -111,7 +113,7 @@ class SegmentationModel(LightningModule):
         metrics = compute_metrics(
             pred_mask, mask,
             mode=self.config['TRAIN']['LOSS']['kwargs']['mode'],
-            num_classes=self.config['TRAIN']['MODEL']['output_classes']
+            num_classes=self.config['TRAIN']['MODEL']['kwargs']['classes']
         )
         self.log_batch_results(loss.item(), metrics, mode='Test')
         self.test_gt_labels.extend(mask.ravel().cpu().numpy())

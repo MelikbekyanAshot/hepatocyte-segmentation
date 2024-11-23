@@ -44,9 +44,10 @@ if __name__ == '__main__':
     wandb.login()
     wandb.init(
         project='hepatocyte-segmentation',
-        name=f"test-{config['TRAIN']['MODEL']['architecture']}-{config['TRAIN']['MODEL']['encoder_name']}",
+        name='test-from-local',  #f"{config['TRAIN']['MODEL']['architecture']}",
         config={
-            **config['TRAIN']['MODEL'],
+            'architecture': config['TRAIN']['MODEL']['architecture'],
+            **config['TRAIN']['MODEL']['kwargs'],
             'function': config['TRAIN']['LOSS']['function'],
             **config['TRAIN']['LOSS']['kwargs'],
             'trainable_params': summary(seg_model.model).trainable_params,
@@ -59,6 +60,7 @@ if __name__ == '__main__':
     trainer = Trainer(
         max_epochs=train_config['N_EPOCHS'],
         accumulate_grad_batches=4,
+        fast_dev_run=True
     )
     trainer.fit(
         model=seg_model,
@@ -82,13 +84,5 @@ if __name__ == '__main__':
         wandb.save(jit_weights_file_name)
     except:
         logger.error("Can't save jit-weights")
-
-    # Save state dict
-    try:
-        state_dict_weights = f"{config['WANDB']['NAME']}_state_dict.pth"
-        torch.save(seg_model.state_dict(), state_dict_weights)
-        wandb.save(state_dict_weights)
-    except:
-        logger.error("Can't save state dict")
 
     wandb.finish()
