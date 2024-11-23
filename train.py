@@ -60,7 +60,6 @@ if __name__ == '__main__':
     trainer = Trainer(
         max_epochs=train_config['N_EPOCHS'],
         accumulate_grad_batches=4,
-        fast_dev_run=True
     )
     trainer.fit(
         model=seg_model,
