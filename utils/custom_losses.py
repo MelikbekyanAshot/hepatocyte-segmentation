@@ -7,6 +7,7 @@ class BoundaryDoULoss(nn.Module):
     def __init__(self, n_classes):
         super(BoundaryDoULoss, self).__init__()
         self.n_classes = n_classes
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     def _one_hot_encoder(self, input_tensor):
         tensor_list = []
@@ -17,9 +18,8 @@ class BoundaryDoULoss(nn.Module):
         return output_tensor.float()
 
     def _adaptive_size(self, score, target):
-        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         kernel = torch.Tensor([[0,1,0], [1,1,1], [0,1,0]])
-        kernel.to(device)
+        kernel.to(self.device)
         padding_out = torch.zeros((target.shape[0], target.shape[-2]+2, target.shape[-1]+2))
         padding_out[:, 1:-1, 1:-1] = target
         h, w = 3, 3
@@ -28,7 +28,7 @@ class BoundaryDoULoss(nn.Module):
         for i in range(Y.shape[0]):
             Y[i, :, :] = torch.conv2d(
                 target[i].unsqueeze(0).unsqueeze(0),
-                kernel.unsqueeze(0).unsqueeze(0).to(device),
+                kernel.unsqueeze(0).unsqueeze(0).to(self.device),
                 padding=1)
         Y = Y * target
         Y[Y == 5] = 0
@@ -47,6 +47,8 @@ class BoundaryDoULoss(nn.Module):
         return loss
 
     def forward(self, inputs, target):
+        inputs.to(self.device)
+        target.to(self.device)
         inputs = torch.softmax(inputs, dim=1)
         target = self._one_hot_encoder(target.squeeze(1))
 
