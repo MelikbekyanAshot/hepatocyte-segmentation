@@ -26,7 +26,10 @@ class BoundaryDoULoss(nn.Module):
 
         Y = torch.zeros((padding_out.shape[0], padding_out.shape[1] - h + 1, padding_out.shape[2] - w + 1))
         for i in range(Y.shape[0]):
-            Y[i, :, :] = torch.conv2d(target[i].unsqueeze(0).unsqueeze(0), kernel.unsqueeze(0).unsqueeze(0), padding=1)
+            Y[i, :, :] = torch.conv2d(
+                target[i].unsqueeze(0).unsqueeze(0),
+                kernel.unsqueeze(0).unsqueeze(0).to(device),
+                padding=1)
         Y = Y * target
         Y[Y == 5] = 0
         C = torch.count_nonzero(Y)
