@@ -30,7 +30,7 @@ class BoundaryDoULoss(nn.Module):
                 target[i].unsqueeze(0).unsqueeze(0),
                 kernel.unsqueeze(0).unsqueeze(0).to(self.device),
                 padding=1)
-        Y = Y * target.to(self.device)
+        Y = Y.cpu() * target.cpu()
         Y[Y == 5] = 0
         C = torch.count_nonzero(Y)
         S = torch.count_nonzero(target)
