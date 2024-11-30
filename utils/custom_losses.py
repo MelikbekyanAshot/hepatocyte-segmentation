@@ -30,7 +30,7 @@ class BoundaryDoULoss(nn.Module):
                 target[i].unsqueeze(0).unsqueeze(0),
                 kernel.unsqueeze(0).unsqueeze(0).to(self.device),
                 padding=1)
-        Y = Y * target
+        Y = Y * target.to(self.device)
         Y[Y == 5] = 0
         C = torch.count_nonzero(Y)
         S = torch.count_nonzero(target)
@@ -41,7 +41,7 @@ class BoundaryDoULoss(nn.Module):
         intersect = torch.sum(score * target)
         y_sum = torch.sum(target * target)
         z_sum = torch.sum(score * score)
-        alpha = min(alpha, 0.8)  ## We recommend using a truncated alpha of 0.8, as using truncation gives better results on some datasets and has rarely effect on others.
+        alpha = min(alpha, 0.8)  # We recommend using a truncated alpha of 0.8, as using truncation gives better results on some datasets and has rarely effect on others.
         loss = (z_sum + y_sum - 2 * intersect + smooth) / (z_sum + y_sum - (1 + alpha) * intersect + smooth)
 
         return loss
