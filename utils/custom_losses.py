@@ -31,7 +31,7 @@ class BoundaryDoULoss(nn.Module):
                 kernel.unsqueeze(0).unsqueeze(0).to(self.device),
                 padding=1)
         Y = Y.cpu() * target.cpu()
-        Y[Y == 5] = 0
+        # Y[Y == 5] = 0
         C = torch.count_nonzero(Y)
         S = torch.count_nonzero(target)
         smooth = 1e-5
