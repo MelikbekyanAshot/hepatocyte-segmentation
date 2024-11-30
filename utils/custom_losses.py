@@ -17,7 +17,9 @@ class BoundaryDoULoss(nn.Module):
         return output_tensor.float()
 
     def _adaptive_size(self, score, target):
+        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         kernel = torch.Tensor([[0,1,0], [1,1,1], [0,1,0]])
+        kernel.to(device)
         padding_out = torch.zeros((target.shape[0], target.shape[-2]+2, target.shape[-1]+2))
         padding_out[:, 1:-1, 1:-1] = target
         h, w = 3, 3
@@ -42,9 +44,6 @@ class BoundaryDoULoss(nn.Module):
         return loss
 
     def forward(self, inputs, target):
-        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-        inputs.to(device)
-        target.to(device)
         inputs = torch.softmax(inputs, dim=1)
         target = self._one_hot_encoder(target.squeeze(1))
 
