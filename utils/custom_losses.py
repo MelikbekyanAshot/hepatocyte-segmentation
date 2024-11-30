@@ -42,6 +42,9 @@ class BoundaryDoULoss(nn.Module):
         return loss
 
     def forward(self, inputs, target):
+        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        inputs.to(device)
+        target.to(device)
         inputs = torch.softmax(inputs, dim=1)
         target = self._one_hot_encoder(target.squeeze(1))
 
