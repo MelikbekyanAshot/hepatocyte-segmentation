@@ -10,7 +10,7 @@ from segmentation_models_pytorch.losses import DiceLoss, SoftCrossEntropyLoss, J
 from torch.optim import Adam, AdamW
 from torch.optim.lr_scheduler import LRScheduler, CosineAnnealingLR, StepLR, ExponentialLR
 
-from utils.custom_losses import GeneralizedDiceLoss
+from utils.custom_losses import BoundaryDoULoss
 
 
 def get_model(architecture: str, **kwargs: Dict) -> torch.nn.Module:
@@ -48,19 +48,21 @@ def get_model(architecture: str, **kwargs: Dict) -> torch.nn.Module:
 def get_loss(function: str, kwargs: Dict):
     loss_mapping = {
         'dice': DiceLoss,
-        'gen_dice': GeneralizedDiceLoss,
         'soft_cse': SoftCrossEntropyLoss,
         'jaccard': JaccardLoss,
         'focal': FocalLoss,
-        'tversky': TverskyLoss
+        'tversky': TverskyLoss,
+        'boundary': BoundaryDoULoss
     }
     loss_fn = loss_mapping.get(function, None)
     if loss_fn is None:
         raise KeyError(f'Loss function {function} is not found!')
-    if function == 'gen_dice':
+    elif function == 'gen_dice':
         return loss_fn()
-    if function == 'tversky':
+    elif function == 'tversky':
         return TverskyLoss(mode=kwargs.get('mode'), alpha=kwargs.get('alpha'), beta=kwargs.get('beta'))
+    elif function == 'boundary':
+        return BoundaryDoULoss(n_classes=len(kwargs.get('class_weights')))
     return loss_fn(**kwargs)
 
 
