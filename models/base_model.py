@@ -1,7 +1,9 @@
 from typing import Dict
 
 import numpy as np
+import torch
 import wandb
+from loguru import logger
 from pytorch_lightning import LightningModule
 
 from metrics.metrics import compute_metrics
@@ -94,6 +96,7 @@ class SegmentationModel(LightningModule):
             f1_score=self.val_history['f1_score'], iou=self.val_history['iou'],
             precision=self.val_history['precision'], recall=self.val_history['recall']
         )
+        self.jit_save()
 
     def on_test_epoch_start(self) -> None:
         self.test_table = wandb.Table(columns=['sample'])
@@ -206,3 +209,19 @@ class SegmentationModel(LightningModule):
             scheduler = self.scheduler(optimizer, **self.config['TRAIN']['SCHEDULER']['kwargs'])
             return {'optimizer': optimizer, 'lr_scheduler': scheduler}
         return optimizer
+
+    def jit_save(self):
+        try:
+            jit_weights_file_name = f"{self.config['WANDB']['NAME']}_scripted.pth"
+            dummy_input = torch.randn(
+                self.config['TRAIN']['BATCH_SIZE'],
+                3,
+                self.config['TRAIN']['PATCH_SIZE'],
+                self.config['TRAIN']['PATCH_SIZE']
+            )
+            with torch.no_grad():
+                traced_cell = torch.jit.trace(self.model, dummy_input)
+            torch.jit.save(traced_cell, jit_weights_file_name)
+            wandb.save(jit_weights_file_name)
+        except:
+            logger.error("Can't save jit-weights")
