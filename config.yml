@@ -11,7 +11,7 @@ TRAIN:
                                  # https://segmentation-models-pytorch.readthedocs.io/en/latest/encoders.html
       classes:          8  # Number of classes
   LOSS:
-    function:           gen_dice  # Available: dice, cross_entropy, soft_cross_entropy, jaccard, focal, tversky
+    function:           tversky  # Available: dice, cross_entropy, soft_cross_entropy, jaccard, focal, tversky
     kwargs:
       mode:             multiclass  # Available: binary, multiclass. Use for dice, jaccard and focal losses
       from_logits:      True
