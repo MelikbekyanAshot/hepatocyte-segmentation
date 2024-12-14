@@ -223,5 +223,5 @@ class SegmentationModel(LightningModule):
                 traced_cell = torch.jit.trace(self.model, dummy_input)
             torch.jit.save(traced_cell, jit_weights_file_name)
             wandb.save(jit_weights_file_name)
-        except:
-            logger.error("Can't save jit-weights")
+        except Exception as e:
+            logger.error(f"Can't save jit weights:\n{e}")
