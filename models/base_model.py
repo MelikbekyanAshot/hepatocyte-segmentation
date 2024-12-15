@@ -212,7 +212,7 @@ class SegmentationModel(LightningModule):
 
     def jit_save(self):
         try:
-            jit_weights_file_name = f"{self.config['WANDB']['NAME']}_scripted.pth"
+            jit_weights_file_name = f"{self.config['WANDB']['NAME']}-{self.current_epoch}epoch-scripted.pth"
             dummy_input = torch.randn(
                 self.config['TRAIN']['BATCH_SIZE'],
                 3,
