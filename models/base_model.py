@@ -218,7 +218,7 @@ class SegmentationModel(LightningModule):
                 3,
                 self.config['TRAIN']['PATCH_SIZE'],
                 self.config['TRAIN']['PATCH_SIZE']
-            )
+            ).cuda()
             with torch.no_grad():
                 traced_cell = torch.jit.trace(self.model, dummy_input)
             torch.jit.save(traced_cell, jit_weights_file_name)
