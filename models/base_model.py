@@ -149,7 +149,7 @@ class SegmentationModel(LightningModule):
             precision=self.test_history['precision'], recall=self.test_history['recall']
         )
 
-        wandb.log({f"Gallery/{self.config['WANDB']['NAME'] or self.model.name}": self.test_table})
+        wandb.log({f"Gallery/{self.config['WANDB']['NAME']}": self.test_table})
         class_names = [label.replace('hepatocyte_', '') for label in self.config['WANDB']['IDX2LABEL'].values()]
         wandb.log({
             'conf_matrix': wandb.plot.confusion_matrix(
