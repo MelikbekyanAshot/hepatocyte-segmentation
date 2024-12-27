@@ -3,8 +3,8 @@ import os
 
 
 app = st.navigation([
-    st.Page('pages/patch.py', title='Патчи'),
-    st.Page('pages/wsi.py', title='WSI')
+    st.Page('web_app/patch.py', title='Патчи'),
+    st.Page('web_app/wsi.py', title='WSI')
 ], )
 
 with st.sidebar:
