@@ -1,4 +1,8 @@
+from typing import List, Union
+
 import torch
+from segmentation_models_pytorch.losses import DiceLoss, SoftCrossEntropyLoss, JaccardLoss, FocalLoss, TverskyLoss, \
+    MULTICLASS_MODE
 from torch import nn
 
 
@@ -58,3 +62,54 @@ class BoundaryDoULoss(nn.Module):
         for i in range(0, self.n_classes):
             loss += self._adaptive_size(inputs[:, i], target[:, i])
         return loss / self.n_classes
+
+
+class CombinedLoss(nn.Module):
+    def __init__(self, losses):
+        super().__init__()
+        self.losses = nn.ModuleList(losses)
+
+    def forward(self, *args, **kwargs):
+        return sum(loss(*args, **kwargs) for loss in self.losses)
+
+
+def get_loss(functions: Union[str, List[str]], **kwargs) -> List[torch.nn.Module]:
+    loss_mapping = {
+        'dice': lambda: DiceLoss(
+            mode=kwargs.get('mode')
+        ),
+        'soft_cse': lambda: SoftCrossEntropyLoss(
+            smooth_factor=kwargs.get('smooth_factor')
+        ),
+        'jaccard': lambda: JaccardLoss(
+            mode=kwargs.get('mode')
+        ),
+        'focal': lambda: FocalLoss(
+            mode=kwargs.get('mode'),
+            alpha=kwargs.get('alpha'),
+            gamma=kwargs.get('gamma', 2.0)
+        ),
+        'tversky': lambda: TverskyLoss(
+            mode=kwargs.get('mode', MULTICLASS_MODE),
+            alpha=kwargs.get('alpha', 0.5),
+            beta=kwargs.get('beta', 0.5),
+            gamma=kwargs.get('gamma', 1.0)
+        ),
+        'boundary': lambda: BoundaryDoULoss(
+            n_classes=len(kwargs.get('class_weights'))
+        ),
+    }
+    # if function not in loss_mapping:
+    #     raise KeyError(f'Loss function {function} is not found!')
+    # loss_fn = loss_mapping[function]()
+    # return loss_fn
+    # Приведение к списку, если передали одну строку
+    if isinstance(functions, str):
+        functions = [functions]
+
+    for fn in functions:
+        if fn not in loss_mapping:
+            raise KeyError(f'Loss function "{fn}" is not found!')
+
+    losses = [loss_mapping[fn]() for fn in functions]
+    return CombinedLoss(losses) if len(losses) > 1 else losses[0]
