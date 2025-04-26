@@ -1,16 +1,15 @@
 """
 File contains utility functions to create model.
 """
+from functools import lru_cache
 from typing import Optional, Type, Dict
 
 import torch
-from segmentation_models_pytorch import Unet, UnetPlusPlus, MAnet, Linknet, FPN, PSPNet, PAN, DeepLabV3, DeepLabV3Plus
+from segmentation_models_pytorch import Unet, UnetPlusPlus, MAnet, Linknet, FPN, PSPNet, PAN, DeepLabV3, DeepLabV3Plus,\
+    Segformer
 from segmentation_models_pytorch.base import SegmentationModel
-from segmentation_models_pytorch.losses import DiceLoss, SoftCrossEntropyLoss, JaccardLoss, FocalLoss, TverskyLoss
 from torch.optim import Adam, AdamW
 from torch.optim.lr_scheduler import LRScheduler, CosineAnnealingLR, StepLR, ExponentialLR
-
-from utils.custom_losses import BoundaryDoULoss
 
 
 def get_model(architecture: str, **kwargs: Dict) -> torch.nn.Module:
@@ -36,34 +35,14 @@ def get_model(architecture: str, **kwargs: Dict) -> torch.nn.Module:
         'pspnet': PSPNet,
         'pan': PAN,
         'deeplabv3': DeepLabV3,
-        'deeplabv3+': DeepLabV3Plus
+        'deeplabv3+': DeepLabV3Plus,
+        'segformer': Segformer
     }
     model = model_mapping.get(architecture.lower(), None)
     if model is None:
         raise KeyError(f"Wrong architecture name '{architecture}', "
                        f"supported architectures: {list(model_mapping.keys())}'")
     return model(**kwargs)
-
-
-def get_loss(function: str, kwargs: Dict):
-    loss_mapping = {
-        'dice': DiceLoss,
-        'soft_cse': SoftCrossEntropyLoss,
-        'jaccard': JaccardLoss,
-        'focal': FocalLoss,
-        'tversky': TverskyLoss,
-        'boundary': BoundaryDoULoss
-    }
-    loss_fn = loss_mapping.get(function, None)
-    if loss_fn is None:
-        raise KeyError(f'Loss function {function} is not found!')
-    elif function == 'gen_dice':
-        return loss_fn()
-    elif function == 'tversky':
-        return TverskyLoss(mode=kwargs.get('mode'), alpha=kwargs.get('alpha'), beta=kwargs.get('beta'))
-    elif function == 'boundary':
-        return BoundaryDoULoss(n_classes=len(kwargs.get('class_weights')))
-    return loss_fn(**kwargs)
 
 
 def get_optimizer(name: str):
@@ -91,6 +70,7 @@ def save_model(model: SegmentationModel):
     torch.jit.save(model, f'weights/{model.name}.pt')
 
 
+@lru_cache(maxsize=1)
 def load_model(path):
     model = torch.jit.load(path)
     return model
