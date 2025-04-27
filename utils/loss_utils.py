@@ -73,7 +73,7 @@ class CombinedLoss(nn.Module):
         return sum(loss(*args, **kwargs) for loss in self.losses)
 
 
-def get_loss(functions: Union[str, List[str]], **kwargs) -> List[torch.nn.Module]:
+def get_loss(functions: Union[str, List[str]], **kwargs) -> torch.nn.Module:
     loss_mapping = {
         'dice': lambda: DiceLoss(
             mode=kwargs.get('mode')
