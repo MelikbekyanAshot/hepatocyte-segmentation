@@ -6,7 +6,7 @@ import torch
 from PIL import Image
 from scipy import ndimage
 
-from utils.colors import Color
+from utils.colors import Color, ColorManager
 
 
 def smooth_mask(mask, kernel_size=(5, 5)):
@@ -58,3 +58,17 @@ def extract_layer(matrix, label):
     res_matrix = np.zeros_like(matrix)
     res_matrix[layer_mask] = matrix[layer_mask]
     return res_matrix
+
+
+def compute_morphometry(mask) -> Dict[str, int]:
+    """Computes number of cells of every type in mask."""
+    color_manager = ColorManager()
+    counts = {}
+    for idx, label in color_manager.idx2label.items():
+        if idx == 0:
+            # ignore background
+            continue
+        label_mask = extract_layer(mask, idx)
+        _, num_cells = ndimage.label(label_mask)
+        counts[label] = num_cells
+    return counts
