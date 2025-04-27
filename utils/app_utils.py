@@ -7,45 +7,45 @@ def generate_color_circle(color: str):
     html_code = f"""
 <head>
     <style>
-        .red-circle {{
+        .circle-1 {{
             padding: 2px 11px;
             border-radius: 100%;
-            background-color: #ff0000;
+            background-color: #ff0000; /* red */
         }}
-        .green-circle {{
+        .circle-2 {{
             padding: 2px 11px;
             border-radius: 100%;
-            background-color: #00ff00;
+            background-color: #00ff00; /* green */
         }}
-        .blue-circle {{
+        .circle-3 {{
             padding: 2px 11px;
             border-radius: 100%;
-            background-color: #0000ff;
+            background-color: #0000ff; /* blue */
         }}
-        .yellow-circle {{
+        .circle-4 {{
             padding: 2px 11px;
             border-radius: 100%;
-            background-color: #ffff00;
+            background-color: #ffff00; /* yellow */
         }}
-        .cyan-circle {{
+        .circle-5 {{
             padding: 2px 11px;
             border-radius: 100%;
-            background-color: #00ffff;
+            background-color: #ff00ff; /* magenta */
         }}
-        .magenta-circle {{
+        .circle-6 {{
             padding: 2px 11px;
             border-radius: 100%;
-            background-color: #ff00ff;
+            background-color: #00ffff; /* cyan */
         }}
-        .black-circle {{
+        .circle-7 {{
             padding: 2px 11px;
             border-radius: 100%;
-            background-color: #000;
+            background-color: #000; /* black */ 
         }}
     </style>
 </head>
 <body>
-    <span class="{color}-circle"></span>
+    <span class="circle-{color}"></span>
 </body>
 </html>"""
     return html_code

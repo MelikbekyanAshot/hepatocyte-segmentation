@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 from yaml import SafeLoader
 
 from datasets.patch_dataset import PatchDataset
+from utils.model_utils import load_model
 from utils.plot_utils import plot_batch
 
 
@@ -113,18 +114,19 @@ def get_dataloaders_from_folders(
 if __name__ == '__main__':
     root = 'D:\\Hepatocyte_full'
     folders = set(os.listdir(root))
-    train_folders = ['7939_20_310320201319_7', '7939_20_310320201319_16']
-    val_folders = ['7939_20_310320201319_4']
-    test_folders = ['7939_20_310320201319_3']
+    train_folders = ['7939_20_310320201319_4']
+    val_folders = ['7939_20_310320201319_7']
+    test_folders = ['7939_20_310320201319_10']
 
     transforms = A.Compose([
         A.RGBShift(),
         A.Blur(),
         A.GaussNoise(),
-        A.Flip(),
+        A.VerticalFlip(),
+        A.HorizontalFlip(),
         A.RandomRotate90(p=0.5),
         A.Transpose(p=0.5),
-        A.RandomSizedCrop(min_max_height=(512 - 100, 512 + 100), width=256, height=256, p=0.5)
+        # A.RandomSizedCrop(min_max_height=(512 - 100, 512 + 100), p=0.5)
     ])
 
     train_dl, val_dl, test_dl = get_dataloaders_from_folders(
@@ -136,8 +138,11 @@ if __name__ == '__main__':
         batch_size=4,
         train_transforms=transforms
     )
+    model = load_model('../weights/unet-resnet101_scripted.pth')
 
     iterator = iter(val_dl)
     while True:
         batch = next(iterator)
+        images, masks = batch
+        predicts = model(images.float())
         plot_batch(batch)

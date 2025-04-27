@@ -7,7 +7,8 @@ from loguru import logger
 from pytorch_lightning import LightningModule
 
 from metrics.metrics import compute_metrics
-from utils.model_utils import get_model, get_loss, get_optimizer, get_scheduler
+from utils.model_utils import get_model, get_optimizer, get_scheduler
+from utils.loss_utils import get_loss
 
 
 class SegmentationModel(LightningModule):
@@ -22,7 +23,7 @@ class SegmentationModel(LightningModule):
             architecture=config['TRAIN']['MODEL']['architecture'],
             **config['TRAIN']['MODEL']['kwargs'])
         self.loss_fn = get_loss(
-            function=config['TRAIN']['LOSS']['function'],
+            functions=config['TRAIN']['LOSS']['function'],
             kwargs=config['TRAIN']['LOSS']['kwargs']
         )
         self.scheduler = get_scheduler(name=config['TRAIN']['SCHEDULER']['function'])

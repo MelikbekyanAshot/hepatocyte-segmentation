@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import torch
 from PIL import Image
+from scipy import ndimage
 
 from utils.colors import Color
 
@@ -28,7 +29,7 @@ def pil_to_pt(image: Image) -> torch.Tensor:
     return tensor_image
 
 
-def segment_patch(model: torch.nn.Module, patch) -> Dict[str, Union[np.ndarray]]:
+def segment_patch(model: torch.nn.Module, patch: Image) -> Dict[str, Union[np.ndarray]]:
     pt_image = pil_to_pt(patch)
     predict = model(pt_image) \
         .argmax(dim=1) \
