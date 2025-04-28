@@ -15,6 +15,7 @@ class Metrics:
 
 
 def compute_metrics(output, target, mode: str, num_classes: int, reduction: str = 'micro') -> Metrics:
+    output = output.squeeze()
     target = target.round().long()
     if mode == 'binary':
         tp, fp, fn, tn = get_stats(output, target, mode=mode, threshold=0.5)

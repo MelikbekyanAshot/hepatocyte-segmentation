@@ -1,9 +1,7 @@
 import os
 
-import torch.jit
-from loguru import logger
-from pytorch_lightning import Trainer, seed_everything
 import albumentations as A
+from pytorch_lightning import Trainer, seed_everything
 from torchinfo import summary
 
 import wandb
@@ -24,7 +22,8 @@ if __name__ == '__main__':
     val_folders = ['7939_20_310320201319_4']
     test_folders = ['7939_20_310320201319_4']
     transforms = A.Compose([
-        A.Flip(),
+        A.HorizontalFlip(),
+        A.VerticalFlip(),
         A.RandomRotate90(p=0.5),
         A.Transpose(p=0.5),
     ])

@@ -6,7 +6,7 @@ TRAIN:
     architecture:       unet  # Available architectures: https://smp.readthedocs.io/en/latest/models.html
     kwargs:
       # Segmentation-model-pytorch framework
-      encoder_name:     resnet18  # Available encoders: https://smp.readthedocs.io/en/latest/encoders.html
+      encoder_name:     resnet50  # Available encoders: https://smp.readthedocs.io/en/latest/encoders.html
       encoder_weights:  imagenet # Keep blank for random initialization, or use available weights:
                                  # https://segmentation-models-pytorch.readthedocs.io/en/latest/encoders.html
       classes:          8  # Number of classes
@@ -48,4 +48,4 @@ WANDB:
     6: mesenchymal_cells
     7: hepatocyte_steatosis_non_nuclei
   PROJECT:  hepatocyte-segmentation
-  NAME:     manet-resnet152
+  NAME:     unet-resnet50

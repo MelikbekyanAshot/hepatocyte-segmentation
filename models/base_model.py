@@ -24,7 +24,7 @@ class SegmentationModel(LightningModule):
             **config['TRAIN']['MODEL']['kwargs'])
         self.loss_fn = get_loss(
             functions=config['TRAIN']['LOSS']['function'],
-            kwargs=config['TRAIN']['LOSS']['kwargs']
+            **config['TRAIN']['LOSS']['kwargs']
         )
         self.scheduler = get_scheduler(name=config['TRAIN']['SCHEDULER']['function'])
         self.optimizer = get_optimizer(name=config['TRAIN']['OPTIMIZER'])
@@ -51,7 +51,7 @@ class SegmentationModel(LightningModule):
 
     def training_step(self, batch, batch_idx):
         image, mask = batch
-        image, mask = image.float(), mask.long()
+        image, mask = image.float(), mask.long().squeeze()
         logits_mask = self.forward(image).float()
         loss = self.loss_fn(logits_mask, mask)
         prob_mask = logits_mask.sigmoid()
@@ -79,7 +79,7 @@ class SegmentationModel(LightningModule):
 
     def validation_step(self, batch, batch_idx):
         image, mask = batch
-        image, mask = image.float(), mask.long()
+        image, mask = image.float(), mask.long().squeeze()
         logits_mask = self.model(image).float()
         loss = self.loss_fn(logits_mask, mask)
         prob_mask = logits_mask.sigmoid()
@@ -109,7 +109,7 @@ class SegmentationModel(LightningModule):
 
     def test_step(self, batch, batch_idx):
         image, mask = batch
-        image, mask = image.float(), mask.long()
+        image, mask = image.float(), mask.long().squeeze()
         logits_mask = self.model(image).float()
         loss = self.loss_fn(logits_mask, mask)
         prob_mask = logits_mask.sigmoid()
