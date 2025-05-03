@@ -2,6 +2,7 @@
 File contains utility functions to get dataloaders and config file.
 """
 import os
+import random
 from typing import Tuple, Dict, List, Optional
 
 import albumentations as A
@@ -30,7 +31,8 @@ def dump_config(config: Dict, path: str):
 
 def get_dataloaders_from_folders(
         train_folders: List[str], val_folders: List[str], test_folders: List[str],
-        root_path: str, patches_path: str, batch_size: int, train_transforms: Optional[A.Compose]) \
+        root_path: str, patches_path: str, batch_size: int, train_transforms: Optional[A.Compose],
+        use_in_train: Optional[float] = 1.0) \
         -> Tuple[DataLoader, DataLoader, DataLoader]:
     """Split image-mask patches into 2 groups: train and val.
     Data directories structure:
@@ -66,6 +68,11 @@ def get_dataloaders_from_folders(
             train_mask_patches.append(os.path.join(mask_dir, patch_path))
     train_img_patches = sorted(train_img_patches)
     train_mask_patches = sorted(train_mask_patches)
+    if use_in_train < 1.0:
+        k = int(use_in_train * len(train_img_patches))
+        random_indexes = random.sample(list(range(len(train_img_patches))), k)
+        train_img_patches = [patch for idx, patch in enumerate(train_img_patches) if idx in random_indexes]
+        train_mask_patches = [patch for idx, patch in enumerate(train_mask_patches) if idx in random_indexes]
     train_patch_ds = PatchDataset(
         image_paths=train_img_patches, label_paths=train_mask_patches, transform=train_transforms)
     train_dataloader = DataLoader(
