@@ -37,6 +37,7 @@ TRAIN:
   N_EPOCHS:             5
   BATCH_SIZE:           8
   PATCH_SIZE:           512
+  DATA_PERCENTAGE_USE:  1.0
 WANDB:
   IDX2LABEL:  # index to label mapping for grouped data
     0: background

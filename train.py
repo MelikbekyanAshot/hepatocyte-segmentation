@@ -34,7 +34,8 @@ if __name__ == '__main__':
         root_path=root,
         patches_path=patches,
         batch_size=train_config['BATCH_SIZE'],
-        train_transforms=transforms
+        train_transforms=transforms,
+        use_in_train=train_config['DATA_PERCENTAGE_USE']
     )
 
     # Train and validate model
