@@ -6,7 +6,7 @@ from typing import Optional, Type, Dict
 
 import torch
 from segmentation_models_pytorch import Unet, UnetPlusPlus, MAnet, Linknet, FPN, PSPNet, PAN, DeepLabV3, DeepLabV3Plus,\
-    Segformer
+    Segformer, DPT, UPerNet
 from segmentation_models_pytorch.base import SegmentationModel
 from torch.optim import Adam, AdamW
 from torch.optim.lr_scheduler import LRScheduler, CosineAnnealingLR, StepLR, ExponentialLR
@@ -36,7 +36,9 @@ def get_model(architecture: str, **kwargs: Dict) -> torch.nn.Module:
         'pan': PAN,
         'deeplabv3': DeepLabV3,
         'deeplabv3+': DeepLabV3Plus,
-        'segformer': Segformer
+        'segformer': Segformer,
+        'dpt': DPT,
+        'upernet': UPerNet
     }
     model = model_mapping.get(architecture.lower(), None)
     if model is None:
