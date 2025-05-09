@@ -38,6 +38,9 @@ TRAIN:
   BATCH_SIZE:           8
   PATCH_SIZE:           512
   DATA_PERCENTAGE_USE:  1.0
+  FOLDERS:
+    TRAIN:              ['7939_20_310320201319_3', '7939_20_310320201319_7', '7939_20_310320201319_10']
+    VAL:                ['7939_20_310320201319_4']
 WANDB:
   IDX2LABEL:  # index to label mapping for grouped data
     0: background

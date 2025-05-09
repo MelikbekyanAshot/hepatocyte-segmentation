@@ -18,9 +18,9 @@ if __name__ == '__main__':
     root = config['PATH']['ROOT']
     patches = config['PATH']['PATCHES']
     folders = set(os.listdir(root))
-    train_folders = ['7939_20_310320201319_7', '7939_20_310320201319_10']
-    val_folders = ['7939_20_310320201319_4']
-    test_folders = ['7939_20_310320201319_4']
+    train_folders = train_config['FOLDERS']['TRAIN']
+    val_folders = train_config['FOLDERS']['VAL']
+    test_folders = train_config['FOLDERS']['VAL']
     transforms = A.Compose([
         A.HorizontalFlip(),
         A.VerticalFlip(),
